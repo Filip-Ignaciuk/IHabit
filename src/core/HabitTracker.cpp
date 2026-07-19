@@ -6,7 +6,7 @@
 HabitTracker::HabitTracker(std::string title, 
         std::string description, 
         std::string metric, 
-        std::map<double, int> threshold_colours) :
+        std::map<double, std::string> threshold_colours) :
         m_title(title),
         m_description(description),
         m_metric(metric),
@@ -17,7 +17,7 @@ HabitTracker::HabitTracker(std::string title,
 HabitTracker::HabitTracker(std::string title, 
         std::string description, 
         std::string metric, 
-        std::map<double, int> threshold_colours,
+        std::map<double, std::string> threshold_colours,
         std::map<std::string, double> data) :
         m_title(title),
         m_description(description),
@@ -39,7 +39,7 @@ const std::string& HabitTracker::GetMetric() const{
     return m_metric;
 }
 
-const std::map<double, int>& HabitTracker::GetThresholdColours() const{
+const std::map<double, std::string>& HabitTracker::GetThresholdColours() const{
     return m_threshold_colours;
 }
 
@@ -47,9 +47,9 @@ const std::map<std::string, double>& HabitTracker::GetData() const{
     return m_data;
 }
 
-int HabitTracker::GetColour(double value) const{
-    std::pair<double, int> previous;
-    for(std::pair<double, int> pair : m_threshold_colours){
+const std::string HabitTracker::GetColour(double value) const{
+    std::pair<double, std::string> previous;
+    for(std::pair<double, std::string> pair : m_threshold_colours){
         if(value > pair.first){
             break;
         }
@@ -70,7 +70,7 @@ void HabitTracker::SetMetric(std::string metric){
     m_metric = metric;
 }
 
-void HabitTracker::AddThresholdColour(std::pair<double, int> threshold_colour){
+void HabitTracker::AddThresholdColour(std::pair<double, std::string> threshold_colour){
     m_threshold_colours.emplace(threshold_colour);
 }
 

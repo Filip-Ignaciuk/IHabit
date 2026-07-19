@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <streambuf>
 #include <string>
 #include <utility>
 
@@ -66,21 +67,22 @@ HabitTracker* HabitTrackerSerializer::LoadHabitTracker(std::filesystem::path pat
     }
     std::string metric = json_file["information"]["metric"];
 
-    std::map<std::string, double> threshold_colours_temporary;
+    std::map<std::string, std::string> threshold_colours_temporary;
     try {
         threshold_colours_temporary = 
-        json_file["information"]["thresholds"].get<std::map<std::string, double>>();
+        json_file["information"]["thresholds"].get<std::map<std::string, std::string>>();
     } catch (nlohmann::json::type_error exception) {
         std::cout << "Incorrect type expected in thresholds.\n";
         std::cout << exception.what();
         return nullptr;
     }
-    
-    // Convert keys from string to double.
-    std::map<double, int> threshold_colours{};
-    for(std::pair<std::string, double> pair : threshold_colours_temporary){
-        threshold_colours.emplace(std::stoi(pair.first), pair.second);
+
+    std::map<double, std::string> threshold_colours;
+    for(std::pair<std::string, std::string> threshold : threshold_colours_temporary){
+        threshold_colours.emplace(std::stod(threshold.first), threshold.second);
     }
+
+    
 
     std::map<std::string, double> data;
     try{
@@ -97,7 +99,7 @@ HabitTracker* HabitTrackerSerializer::LoadHabitTracker(std::filesystem::path pat
     std::cout << "Title: " << title << "\n";
     std::cout << "Description: " << description << "\n";
     std::cout << "Metric: " << metric << "\n";
-    for(std::pair<std::string, double> thresholdPair : threshold_colours_temporary){
+    for(std::pair<double, std::string> thresholdPair : threshold_colours){
         std::cout << thresholdPair.first << ": " << thresholdPair.second << "\n";
     }
 
@@ -121,8 +123,8 @@ void HabitTrackerSerializer::SaveHabitTracker(std::filesystem::path path,
     json_file["information"]["description"] = habit_tracker.GetDescription();
     json_file["information"]["metric"] = habit_tracker.GetMetric();
 
-    std::map<double, int> threshold_colours = habit_tracker.GetThresholdColours();
-    for(std::pair<double, int> threshold_colour : threshold_colours){
+    std::map<double, std::string> threshold_colours = habit_tracker.GetThresholdColours();
+    for(std::pair<double, std::string> threshold_colour : threshold_colours){
         std::string key = std::to_string(threshold_colour.first);
         json_file["information"]["thresholds"][key] = threshold_colour.second;
     }

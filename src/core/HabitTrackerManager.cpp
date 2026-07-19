@@ -35,3 +35,11 @@ const std::set<HabitTracker>& HabitTrackerManager::LoadHabitTrackers(
     }
     return habit_trackers;
 }
+
+void HabitTrackerManager::AddHabitTracker(HabitTracker habit_tracker){
+    habit_trackers.emplace(habit_tracker);
+}
+
+void HabitTrackerManager::RemoveHabitTracker(HabitTracker habit_tracker){
+    habit_trackers.erase(habit_tracker);
+}
