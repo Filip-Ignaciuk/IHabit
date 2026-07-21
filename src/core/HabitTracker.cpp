@@ -1,4 +1,5 @@
 #include "HabitTracker.hpp"
+#include <chrono>
 #include <iterator>
 #include <string>
 #include <utility>
@@ -7,10 +8,10 @@ HabitTracker::HabitTracker(std::string title,
         std::string description, 
         std::string metric, 
         std::map<double, std::string> threshold_colours) :
-        m_title(title),
-        m_description(description),
-        m_metric(metric),
-        m_threshold_colours(threshold_colours){
+        title_(title),
+        description_(description),
+        metric_(metric),
+        threshold_colours_(threshold_colours){
         UpdateAvailableYears();
 }
 
@@ -18,39 +19,39 @@ HabitTracker::HabitTracker(std::string title,
         std::string description, 
         std::string metric, 
         std::map<double, std::string> threshold_colours,
-        std::map<std::string, double> data) :
-        m_title(title),
-        m_description(description),
-        m_metric(metric),
-        m_threshold_colours(threshold_colours),
-        m_data(data){
+        std::map<std::chrono::year_month_day, double> data) :
+        title_(title),
+        description_(description),
+        metric_(metric),
+        threshold_colours_(threshold_colours),
+        data_(data){
         UpdateAvailableYears();
 }
 
 const std::string& HabitTracker::GetTitle() const{
-    return m_title;
+    return title_;
 }
 
 const std::string& HabitTracker::GetDescription() const{
-    return m_description;
+    return description_;
 }
 
 const std::string& HabitTracker::GetMetric() const{
-    return m_metric;
+    return metric_;
 }
 
 const std::map<double, std::string>& HabitTracker::GetThresholdColours() const{
-    return m_threshold_colours;
+    return threshold_colours_;
 }
 
-const std::map<std::string, double>& HabitTracker::GetData() const{
-    return m_data;
+const std::map<std::chrono::year_month_day, double>& HabitTracker::GetData() const{
+    return data_;
 }
 
-const std::string HabitTracker::GetColour(double value) const{
-    std::pair<double, std::string> previous;
-    for(std::pair<double, std::string> pair : m_threshold_colours){
-        if(value > pair.first){
+const std::string& HabitTracker::GetColour(double value) const{
+    std::pair<double, std::string> previous = *threshold_colours_.begin();
+    for(std::pair<double, std::string> pair : threshold_colours_){
+        if(value <= pair.first){
             break;
         }
         previous = pair;
@@ -58,44 +59,46 @@ const std::string HabitTracker::GetColour(double value) const{
     return previous.second;
 }
 
+[[nodiscard]] const std::vector<std::string>& HabitTracker::GetAvailableYears() const {
+    return available_years_;
+}
+
 void HabitTracker::SetTitle(std::string title){
-    m_title = title;
+    title_ = title;
 }
 
 void HabitTracker::SetDescription(std::string description){
-    m_description = description;
+    description_ = description;
 }
 
 void HabitTracker::SetMetric(std::string metric){
-    m_metric = metric;
+    metric_ = metric;
 }
 
 void HabitTracker::AddThresholdColour(std::pair<double, std::string> threshold_colour){
-    m_threshold_colours.emplace(threshold_colour);
+    threshold_colours_.emplace(threshold_colour);
 }
 
-void HabitTracker::AddDay(std::pair<std::string, int> day_paring){
-    m_data.emplace(day_paring);
+void HabitTracker::AddDay(std::pair<std::chrono::year_month_day, int> day_paring){
+    data_.emplace(day_paring);
 }
 
 bool HabitTracker::operator<(const HabitTracker& other) const{
-    return m_title < other.m_title;
+    return title_ < other.title_;
 }
 
 
 void HabitTracker::UpdateAvailableYears(){
-    if(m_data.size() == 0){
+    if(data_.empty()){
         return;
     }
-    std::string first = (*m_data.begin()).first;
-    const int size = m_data.size();
-    std::string last =  (*std::prev(m_data.end())).first;
-    std::string start_year = first.substr(0, 4);
-    std::string last_year = first.substr(0, 4);
-    int start_year_int = std::stoi(start_year);
-    int last_year_int = std::stoi(last_year);
-    for(; start_year_int <= last_year_int; ++start_year_int){
-        m_available_years.emplace_back(std::to_string(start_year_int));
+    const size_t size = data_.size();
+    std::chrono::year_month_day first = (*data_.begin()).first;
+    std::chrono::year_month_day last =  (*std::prev(data_.end())).first;
+    int start_year = static_cast<int>(first.year());
+    int last_year = static_cast<int>(last.year());
+    for(; start_year <= last_year; ++start_year){
+        available_years_.emplace_back(std::to_string(start_year));
     }
 
 

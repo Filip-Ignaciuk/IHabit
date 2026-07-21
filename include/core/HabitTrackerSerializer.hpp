@@ -8,10 +8,8 @@ class HabitTrackerSerializer{
     public:
     static HabitTracker* LoadHabitTracker(std::filesystem::path path);
     static void SaveHabitTracker(std::filesystem::path path, const HabitTracker& habit_tracker);
-
-    private:
-        HabitTrackerSerializer() = delete;
-        ~HabitTrackerSerializer() = delete;
+    HabitTrackerSerializer() = delete;
+    ~HabitTrackerSerializer() = delete;
 };
 
 #endif

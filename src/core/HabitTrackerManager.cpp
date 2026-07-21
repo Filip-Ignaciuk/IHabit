@@ -5,13 +5,13 @@
 #include <iostream>
 #include <set>
 
-std::set<HabitTracker> HabitTrackerManager::habit_trackers;
+std::set<HabitTracker> HabitTrackerManager::habit_trackers_;
 
-const std::set<HabitTracker>& HabitTrackerManager::LoadHabitTrackers(
+void HabitTrackerManager::LoadHabitTrackers(
     std::filesystem::path root_path){
     if(!std::filesystem::exists(root_path)){
         std::cout << "File path specified doesn't exist.\n";
-        return habit_trackers;
+        return;
     }
     const std::string json_extension{".json"};
     for (const std::filesystem::directory_entry& entry : 
@@ -30,16 +30,20 @@ const std::set<HabitTracker>& HabitTrackerManager::LoadHabitTrackers(
             // Something wrong happened with the loading of the habit tracker.
             continue;
         }
-        habit_trackers.emplace(*habit);
+        habit_trackers_.emplace(*habit);
         delete habit;
     }
-    return habit_trackers;
 }
+
+const std::set<HabitTracker>& HabitTrackerManager::GetHabitTrackers(){
+    return habit_trackers_;
+}
+
 
 void HabitTrackerManager::AddHabitTracker(HabitTracker habit_tracker){
-    habit_trackers.emplace(habit_tracker);
+    habit_trackers_.emplace(habit_tracker);
 }
 
-void HabitTrackerManager::RemoveHabitTracker(HabitTracker habit_tracker){
-    habit_trackers.erase(habit_tracker);
+void HabitTrackerManager::RemoveHabitTracker(const HabitTracker& habit_tracker){
+    habit_trackers_.erase(habit_tracker);
 }

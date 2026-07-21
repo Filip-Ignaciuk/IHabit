@@ -20,10 +20,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC include/core/)
 
 # Website Example
 add_executable(IHabitApp
-    src/apps/main.cpp
+        src/app/Main.cpp
+        src/app/GridMaker.cpp
+        src/app/App.cpp
 )
 
 target_include_directories(IHabitApp PRIVATE include/gui)
+target_include_directories(IHabitApp PRIVATE include/app)
 target_link_libraries(IHabitApp PRIVATE raylib ${PROJECT_NAME} )
 
 # Compilation for websites.
