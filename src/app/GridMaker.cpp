@@ -3,107 +3,85 @@
 #include "raylib.h"
 #include <string>
 #include <utility>
-#include <vector>
 #include <chrono>
 
-std::map<std::string, std::vector<Square>> GridMaker::MakeGrids(const HabitTracker& habit_tracker){
-    std::map<std::string, std::vector<Square>> grids;
-    std::chrono::year current_year_chrono;
-    int current_year = 0;
-    std::vector<Square> squares;
-    int column = 0;
-    for(std::pair<std::chrono::year_month_day, double> data_pair : habit_tracker.GetData()){
-        int current_data_pair_year = static_cast<int>(data_pair.first.year());
-        if (current_year == 0) {
-            current_year = current_data_pair_year;
-            current_year_chrono = data_pair.first.year();
+std::map<std::string, Grid> GridMaker::MakeGrids(const HabitTracker& habit_tracker){
+    std::map<std::string, Grid> result;
+
+
+    for(std::pair<std::chrono::year_month_day, double> data_pair :
+        habit_tracker.GetData()){
+
+        const std::chrono::year& current_year = data_pair.first.year();
+        std::string current_year_string = std::to_string(static_cast<int>(current_year));
+        bool is_leap = current_year.is_leap();
+        std::chrono::year_month_day jan_1_ymd = std::chrono::year(current_year) / std::chrono::January / 1;
+        auto jan_1 = std::chrono::sys_days(jan_1_ymd);
+        auto current_day = std::chrono::sys_days(data_pair.first);
+        auto day_index = (current_day - jan_1).count();
+        int starting_day = static_cast<int>(std::chrono::weekday(jan_1).c_encoding());
+        int column = (day_index + starting_day) / 7;
+        int row = (((day_index % 7) + starting_day) % 7) - 1;
+        // Create Square
+        const Color& color = StringToColor(habit_tracker.GetColour(data_pair.second));
+        const Square square {
+            .rectangle = {
+                .x = static_cast<float>(column * 16),
+                .y = static_cast<float>(row * 16),
+                .width = 8,
+                .height = 8
+            },
+            .color = color
+        };
+
+        // Add to correct position
+
+        if (!result.contains(current_year_string)) {
+            // Year doesnt exist yet.
+            Grid grid{
+                .squares = {},
+                .is_leap = current_year.is_leap(),
+                .starting_day = starting_day
+            };
+            result.emplace(current_year_string, grid);
         }
-        if(current_data_pair_year != current_year){
-            // We finished the previous year off.
-            int leftover = (data_pair.first.year().is_leap()) 
-            ? 366 : 365;
-            leftover -= squares.size();
+        result[current_year_string].squares[day_index] = square;
+    }
 
-            Square last_square = squares.back();
-            // Position of last square
-            int column = (last_square.rectangle.x - 8) / 16;
-            int row = (last_square.rectangle.y - 8) / 16;
+    // Correct positions for missing days
+    for (std::pair<const std::string, Grid>& data_pair : result) {
+        for (int i {0}; i < 367; ++i) {
+            Square square = data_pair.second.squares[i];
+            if (square.color.r == grey.r &&
+                square.color.g == grey.g &&
+                square.color.b == grey.b) {
+                int column = (i + 1 + data_pair.second.starting_day) / 7;
+                auto days = std::chrono::sys_days(
+                    std::chrono::year(
+                        std::stoi(data_pair.first)) / std::chrono::January / 1) +
+                            std::chrono::days(i);
 
-            // Adding remaining leftover squares
-            for(; leftover != 0; leftover--){
-                Square square;
-                square.color = grey;
-                square.rectangle = {(float)(8 + (column * 16)),
-                    (float)(8 + (row * 16)),
+                int row = static_cast<int>(
+                    std::chrono::weekday(
+                        days).c_encoding());
+                square.rectangle = {
+                    static_cast<float>((column) * 16),
+                    static_cast<float>((row) * 16),
                     8,
                     8
                 };
-                row++;
-                if(row == 7){
-                    row = row % 7;
-                    column++;
-                }
-                squares.emplace_back(square);
             }
-            
-            // Clearing and moving to next one.
-            grids.emplace(std::to_string(current_year), squares);
-            current_year = current_data_pair_year;
-            current_year_chrono = data_pair.first.year();
-            squares.clear();
-            column = 0;
-
+            data_pair.second.squares[i] = square;
         }
 
-        Square square;
-        square.color = StringToColor(
-            habit_tracker.GetColour(data_pair.second));
-        
-        std::chrono::weekday weekday{std::chrono::sys_days{data_pair.first}};
-        int starting_day_number = static_cast<int>(weekday.iso_encoding());
-        
-        Rectangle square_rectangle {(float)8 + (column * 16), 
-            (float)(8 + ((starting_day_number - 1) * 16)), 
-            8, 
-            8};
-
-        square.rectangle = square_rectangle;
-        squares.emplace_back(square);
-        if(starting_day_number == 7) {
-            column++;
+        std::chrono::year year { std::stoi(data_pair.first)};
+        if (!year.is_leap()) {
+            data_pair.second.squares[365].color.a = 0;
         }
+
     }
 
-    // We finished the previous year off.
-    int leftover = (current_year_chrono.is_leap())
-    ? 366 : 365;
-    leftover -= squares.size();
-    Square last_square = squares.back();
-    // Position of last square
-    column = (last_square.rectangle.x - 8) / 16;
-    int row = (last_square.rectangle.y - 8) / 16;
-
-    // Adding remaining leftover squares
-    for(; leftover != 0; leftover--){
-        Square square;
-        square.color = grey;
-        square.rectangle = {(float)(8 + (column * 16)),
-            (float)(8 + (row * 16)),
-            8,
-            8
-        };
-        row++;
-        if(row == 7){
-            row = row % 7;
-            column++;
-        }
-        squares.emplace_back(square);
-    }
-
-    // Clearing and moving to next one.
-    grids.emplace(std::to_string(current_year), squares);
-
-    return grids;
+    return result;
 }
 
 Color GridMaker::StringToColor(std::string string_color){

@@ -84,19 +84,18 @@ void IHabitApp::IHabitApp::Run() {
                 .height = 24},
                 title.c_str());
 
-            std::string drop_down_box_title;
-            for (const std::string& year : (*iterator).GetAvailableYears()) {
-                drop_down_box_title += year + ";";
-            }
+            std::string drop_down_box_title = GetDropDownBoxTitle(iterator->GetAvailableYears());
 
-            GuiDropdownBox({
+            if (GuiDropdownBox({
                 .x = initial_habit_position.x + 1184,
                 .y = initial_habit_position.y + 8 + ((192.0f) * count),
                 .width = 72,
                 .height = 24},
                 drop_down_box_title.c_str(),
                 &habit_ui_state.drop_down_box_active,
-                habit_ui_state.drop_down_box_edit_mode);
+                habit_ui_state.drop_down_box_edit_mode)) {
+                habit_ui_state.drop_down_box_edit_mode = !habit_ui_state.drop_down_box_edit_mode;
+            }
 
             GuiLabel({
                 .x = initial_habit_position.x + 8,
@@ -108,8 +107,8 @@ void IHabitApp::IHabitApp::Run() {
             const std::string& selectedYear =
                 habit_ui_state.drop_down_box_years[habit_ui_state.drop_down_box_active];
 
-            const std::vector<Square>& squares = habit_ui_state.grids.at(selectedYear);
-            for(Square square : squares){
+            const Grid& grid = habit_ui_state.grids.at(selectedYear);
+            for(Square square : grid.squares) {
                 DrawRectangle(
                     static_cast<int>(initial_habit_position.x + square.rectangle.x) + 8,
                     static_cast<int>(initial_habit_position.y + square.rectangle.y +
@@ -170,7 +169,7 @@ IHabitApp::IHabitApp::~IHabitApp() {
 
 void IHabitApp::IHabitApp::RefreshHabitUIStates() {
     for(const HabitTracker& habit_tracker : HabitTrackerManager::GetHabitTrackers()){
-        const std::map<std::string, std::vector<Square>> grids =
+        const std::map<std::string, Grid> grids =
             GridMaker::MakeGrids(habit_tracker);
         HabitUIState habit_ui_state{
             grids,
@@ -180,6 +179,18 @@ void IHabitApp::IHabitApp::RefreshHabitUIStates() {
         };
         habit_ui_states_.emplace(habit_tracker.GetTitle(), habit_ui_state);
     }
+}
+
+std::string IHabitApp::IHabitApp::GetDropDownBoxTitle(std::vector<std::string> years) {
+    const size_t size = years.size();
+    std::string title;
+    for (int i = 0; i < size; ++i) {
+        title += years[i];
+        if (i < years.size() - 1) {
+            title += ';';
+        }
+    }
+    return title;
 }
 
 void IHabitApp::IHabitApp::ShowSettingsMenu(){

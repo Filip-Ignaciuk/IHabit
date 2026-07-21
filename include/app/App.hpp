@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "GridMaker.hpp"
+
 class HabitTracker;
 class Square;
 
@@ -35,7 +37,7 @@ namespace IHabitApp {
     };
 
     struct HabitUIState {
-        std::map<std::string, std::vector<Square>> grids;
+        std::map<std::string, Grid> grids;
         bool drop_down_box_edit_mode = false;
         int drop_down_box_active = 0;
         std::vector<std::string> drop_down_box_years;
@@ -63,6 +65,8 @@ namespace IHabitApp {
         const HabitTracker* current_habit_;
 
         void RefreshHabitUIStates();
+
+        static std::string GetDropDownBoxTitle(std::vector<std::string> years);
 
         void ShowSettingsMenu();
         void ShowHabitsMenu();

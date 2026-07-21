@@ -4,24 +4,36 @@
 #include "raylib.h"
 #include "HabitTracker.hpp"
 #include <map>
-#include <vector>
 
-struct Square{
-    Rectangle rectangle;
-    Color color;
-};
+struct Grid;
 
 class GridMaker{
-    public:
-    static std::map<std::string, std::vector<Square>> MakeGrids(const HabitTracker& habit_tracker);
+public:
+    static std::map<std::string, Grid> MakeGrids(const HabitTracker& habit_tracker);
     static Color StringToColor(std::string string_color);
+
+    static constexpr Rectangle standard_rectangle{0,0,8,8};
+    static constexpr Color grey{128, 128, 128, 255};
 
     GridMaker() = delete;
     ~GridMaker() = delete;
-
-    private:
-    static constexpr Rectangle standard_rectangle{0,0,8,8};
-    static constexpr Color grey{128, 128, 128, 255};
 };
+
+struct Square{
+    Rectangle rectangle;
+    // We assume that the square is initially not populated.
+    Color color = GridMaker::grey;
+};
+
+struct Grid {
+    std::array<Square, 366> squares;
+    bool is_leap;
+    // Indicates which day in the week it starts, sun - 0, mon - 1 etc
+    int starting_day;
+};
+
+
+
+
 
 #endif
