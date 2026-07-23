@@ -15,14 +15,20 @@ std::map<std::string, Grid> GridMaker::MakeGrids(const HabitTracker& habit_track
         const std::chrono::year& current_year = data_pair.first.year();
         std::string current_year_string = std::to_string(static_cast<int>(current_year));
         bool is_leap = current_year.is_leap();
-        std::chrono::year_month_day jan_1_ymd = std::chrono::year(current_year) / std::chrono::January / 1;
+        std::chrono::year_month_day jan_1_ymd = std::chrono::year(
+            current_year) /
+                std::chrono::January / 1;
         auto jan_1 = std::chrono::sys_days(jan_1_ymd);
         auto current_day = std::chrono::sys_days(data_pair.first);
         auto day_index = (current_day - jan_1).count();
         int starting_day = static_cast<int>(std::chrono::weekday(jan_1).c_encoding());
         int column = (day_index + starting_day) / 7;
-        int row = (((day_index % 7) + starting_day) % 7) - 1;
+        int row = static_cast<int>(std::chrono::weekday(current_day).c_encoding());
+        //int row = (((day_index % 7) + starting_day) % 7) - 1;
         // Create Square
+
+
+
         const Color& color = StringToColor(habit_tracker.GetColour(data_pair.second));
         const Square square {
             .rectangle = {
@@ -55,10 +61,12 @@ std::map<std::string, Grid> GridMaker::MakeGrids(const HabitTracker& habit_track
             if (square.color.r == grey.r &&
                 square.color.g == grey.g &&
                 square.color.b == grey.b) {
-                int column = (i + 1 + data_pair.second.starting_day) / 7;
+                int column = (i + data_pair.second.starting_day) / 7;
                 auto days = std::chrono::sys_days(
                     std::chrono::year(
-                        std::stoi(data_pair.first)) / std::chrono::January / 1) +
+                        std::stoi(
+                            data_pair.first)) /
+                            std::chrono::January / 1) +
                             std::chrono::days(i);
 
                 int row = static_cast<int>(
@@ -78,7 +86,6 @@ std::map<std::string, Grid> GridMaker::MakeGrids(const HabitTracker& habit_track
         if (!year.is_leap()) {
             data_pair.second.squares[365].color.a = 0;
         }
-
     }
 
     return result;

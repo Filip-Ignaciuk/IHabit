@@ -15,9 +15,9 @@ HabitTracker::HabitTracker(std::string title,
         UpdateAvailableYears();
 }
 
-HabitTracker::HabitTracker(std::string title, 
-        std::string description, 
-        std::string metric, 
+HabitTracker::HabitTracker(std::string title,
+        std::string description,
+        std::string metric,
         std::map<double, std::string> threshold_colours,
         std::map<std::chrono::year_month_day, double> data) :
         title_(title),
@@ -48,7 +48,7 @@ const std::map<std::chrono::year_month_day, double>& HabitTracker::GetData() con
     return data_;
 }
 
-const std::string& HabitTracker::GetColour(double value) const{
+std::string HabitTracker::GetColour(double value) const{
     std::pair<double, std::string> previous = *threshold_colours_.begin();
     for(std::pair<double, std::string> pair : threshold_colours_){
         if(value <= pair.first){
@@ -79,8 +79,9 @@ void HabitTracker::AddThresholdColour(std::pair<double, std::string> threshold_c
     threshold_colours_.emplace(threshold_colour);
 }
 
-void HabitTracker::AddDay(std::pair<std::chrono::year_month_day, int> day_paring){
-    data_.emplace(day_paring);
+void HabitTracker::AddDay(std::chrono::year_month_day date, double value){
+    data_.emplace(date, value);
+    UpdateAvailableYears();
 }
 
 bool HabitTracker::operator<(const HabitTracker& other) const{
@@ -92,14 +93,14 @@ void HabitTracker::UpdateAvailableYears(){
     if(data_.empty()){
         return;
     }
-    const size_t size = data_.size();
-    std::chrono::year_month_day first = (*data_.begin()).first;
-    std::chrono::year_month_day last =  (*std::prev(data_.end())).first;
-    int start_year = static_cast<int>(first.year());
-    int last_year = static_cast<int>(last.year());
-    for(; start_year <= last_year; ++start_year){
-        available_years_.emplace_back(std::to_string(start_year));
+    available_years_.clear();
+    std::set<std::string> available_years;
+    for (const std::pair<std::chrono::year_month_day, double>& pair : data_) {
+        available_years.insert(std::to_string(static_cast<int>(pair.first.year())));
     }
 
+    for (const std::string& year : available_years) {
+        available_years_.push_back(year);
+    }
 
 }

@@ -19,7 +19,9 @@ namespace IHabitApp {
         None,
         SettingsBox,
         HabitsBox,
-        HelpBox
+        HelpBox,
+        RecordDayBox,
+        AddHabitBox
     };
 
      inline Rectangle standard_box{
@@ -34,6 +36,17 @@ namespace IHabitApp {
         .y = 104,
         .width = 1248,
         .height = 600
+    };
+
+    inline Rectangle small_box_inner{
+        .x = 480,
+        .y = 270,
+        .width = 320,
+        .height = 180
+    };
+
+    inline constexpr std::array<std::string_view, 7> weekdays = {
+        "Sun", "Tue", "Wed", "Thu", "Fri", "Sat", "Mon"
     };
 
     struct HabitUIState {
@@ -55,14 +68,41 @@ namespace IHabitApp {
 
 
         // Adding Habit data
-        std::string* new_habit_title_;
-        std::string* new_habit_description_;
-        std::string* new_habit_metric_;
+        char new_habit_title_[20] = {};
+        char new_habit_description_[200] = {};
+        char new_habit_metric_[20] = {};
+        Color new_threshold_colour_;
         std::map<double, int>* new_habit_threshold_colours_;
-        std::map<std::string, double>* new_habit_data_;
+
+        bool new_habit_title_edit_mode_ = false;
+        bool new_habit_description_edit_mode_ = false;
+        bool new_habit_metric_edit_mode_ = false;
+
+        Vector2 new_habit_panel_offset_ = { .x = 0, .y = 0 };
+
+        // Recording Day data
+        std::string selected_habit_title_;
+        std::string previous_selected_habit_title_;
+        char new_record_day_[3] = {};
+        char new_record_month_[3] = {};
+        char new_record_year_[5] = {};
+        char new_record_value_[6] = {};
+        double new_record_value_double_;
+
+        bool day_edit_mode_ = false;
+        bool month_edit_mode_ = false;
+        bool year_edit_mode_ = false;
+        bool value_edit_mode_ = false;
+
+
 
         // Viewing Habit data
         const HabitTracker* current_habit_;
+        Vector2 habit_panel_offset_ = { .x = 0, .y = 0 };
+
+        // Settings
+        bool wants_european_weekday_ = false;
+        bool wants_weekday_displayed_ = false;
 
         void RefreshHabitUIStates();
 
@@ -71,6 +111,15 @@ namespace IHabitApp {
         void ShowSettingsMenu();
         void ShowHabitsMenu();
         void ShowHelpMenu();
+        void ShowRecordDayMenu();
+        void ShowAddHabitMenu();
+
+        // Returns pointer if valid else nullptr
+        std::chrono::year_month_day* IsRecordInputValid();
+        void RecordDay(std::chrono::year_month_day* ymd);
+
+        HabitTracker* IsAddHabitInputValid();
+        void AddHabit(HabitTracker* habit);
     };
 }
 

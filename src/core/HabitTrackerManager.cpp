@@ -5,7 +5,7 @@
 #include <iostream>
 #include <set>
 
-std::set<HabitTracker> HabitTrackerManager::habit_trackers_;
+std::map<std::string, HabitTracker> HabitTrackerManager::habit_trackers_;
 
 void HabitTrackerManager::LoadHabitTrackers(
     std::filesystem::path root_path){
@@ -30,20 +30,25 @@ void HabitTrackerManager::LoadHabitTrackers(
             // Something wrong happened with the loading of the habit tracker.
             continue;
         }
-        habit_trackers_.emplace(*habit);
+        habit_trackers_.emplace(habit->GetTitle(), *habit);
         delete habit;
     }
 }
 
-const std::set<HabitTracker>& HabitTrackerManager::GetHabitTrackers(){
+const std::map<std::string, HabitTracker>& HabitTrackerManager::GetHabitTrackers(){
     return habit_trackers_;
 }
 
-
 void HabitTrackerManager::AddHabitTracker(HabitTracker habit_tracker){
-    habit_trackers_.emplace(habit_tracker);
+    habit_trackers_[habit_tracker.GetTitle()] = std::move(habit_tracker);
 }
 
 void HabitTrackerManager::RemoveHabitTracker(const HabitTracker& habit_tracker){
-    habit_trackers_.erase(habit_tracker);
+    habit_trackers_.erase(habit_tracker.GetTitle());
+}
+
+void HabitTrackerManager::RecordDay(const std::string& title,
+    std::chrono::year_month_day* ymd,
+    double value) {
+    habit_trackers_[title].AddDay(*ymd, value);
 }

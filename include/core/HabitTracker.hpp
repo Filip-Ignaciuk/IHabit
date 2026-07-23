@@ -6,18 +6,20 @@
 #include <string>
 #include <utility>
 #include <vector>
-
+#include <set>
 class HabitTracker{
     public:
+    HabitTracker() = default;
+
     HabitTracker(std::string title, 
         std::string description, 
         std::string metric, 
         std::map<double, std::string> threshold_colours);
 
     // Constructor for if you have data to fill out initially.
-    HabitTracker(std::string title, 
-        std::string description, 
-        std::string metric, 
+    HabitTracker(std::string title,
+        std::string description,
+        std::string metric,
         std::map<double, std::string> threshold_colours,
         std::map<std::chrono::year_month_day, double> data);
 
@@ -30,14 +32,14 @@ class HabitTracker{
     // If value is not exactly the same value it will find
     // The threshold colour that is the largest value
     // That is less than the value provided.
-    [[nodiscard]] const std::string& GetColour(double value) const;
+    [[nodiscard]] std::string GetColour(double value) const;
     [[nodiscard]] const std::vector<std::string>& GetAvailableYears() const;
 
     void SetTitle(std::string title);
     void SetDescription(std::string description);
     void SetMetric(std::string metric);
     void AddThresholdColour(std::pair<double, std::string> threshold_colour);
-    void AddDay(std::pair<std::chrono::year_month_day, int> day_paring);
+    void AddDay(std::chrono::year_month_day date, double value);
 
     bool operator<(const HabitTracker& other) const;
     
