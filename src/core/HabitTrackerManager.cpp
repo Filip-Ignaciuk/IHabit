@@ -35,6 +35,19 @@ void HabitTrackerManager::LoadHabitTrackers(
     }
 }
 
+void HabitTrackerManager::SaveHabitTrackers(std::filesystem::path root_path) {
+    if(!std::filesystem::exists(root_path)) {
+        std::cout << "File path specified doesn't exist.\n";
+        return;
+    }
+    const std::string json_extension{".json"};
+    for (const std::pair<const std::string, HabitTracker>& habit_tracker : habit_trackers_) {
+        std::filesystem::path habit_path = root_path / habit_tracker.first;
+        std::filesystem::path file_path = habit_path.string() + ".json";
+        HabitTrackerSerializer::SaveHabitTracker(file_path, habit_tracker.second);
+    }
+}
+
 const std::map<std::string, HabitTracker>& HabitTrackerManager::GetHabitTrackers(){
     return habit_trackers_;
 }

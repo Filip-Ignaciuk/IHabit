@@ -115,20 +115,6 @@ HabitTracker* HabitTrackerSerializer::LoadHabitTracker(std::filesystem::path pat
         std::chrono::day{unsigned_day}};
         data.emplace(first_day, data_pair.second);    
     }
-    
-    
-    // DEBUG
-    std::cout << "Loaded habit successfully!\n";
-    std::cout << "Title: " << title << "\n";
-    std::cout << "Description: " << description << "\n";
-    std::cout << "Metric: " << metric << "\n";
-    for(std::pair<double, std::string> thresholdPair : threshold_colours){
-        std::cout << thresholdPair.first << ": " << thresholdPair.second << "\n";
-    }
-
-    for(std::pair<std::chrono::year_month_day, double> dataPair : data){
-        std::cout << dataPair.first << ": " << dataPair.second << "\n";
-    }
 
     input.close();
 

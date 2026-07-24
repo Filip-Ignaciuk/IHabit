@@ -1,5 +1,6 @@
 #ifndef IHABIT_APP_HPP
 #define IHABIT_APP_HPP
+#include <filesystem>
 #include <map>
 #include <raylib.h>
 #include <string>
@@ -65,18 +66,20 @@ namespace IHabitApp {
     private:
         WindowGuiState window_gui_state_;
         std::map<std::string, HabitUIState> habit_ui_states_;
-
+        std::filesystem::path habit_path_ = std::filesystem::current_path() /= "data";
 
         // Adding Habit data
         char new_habit_title_[20] = {};
         char new_habit_description_[200] = {};
         char new_habit_metric_[20] = {};
+        std::map<double, std::string>* new_habit_threshold_colours_;
         Color new_threshold_colour_;
-        std::map<double, int>* new_habit_threshold_colours_;
+        char new_threshold_value_[6] = {};
 
         bool new_habit_title_edit_mode_ = false;
         bool new_habit_description_edit_mode_ = false;
         bool new_habit_metric_edit_mode_ = false;
+        bool new_habit_threshold_value_edit_mode_ = false;
 
         Vector2 new_habit_panel_offset_ = { .x = 0, .y = 0 };
 
@@ -120,6 +123,8 @@ namespace IHabitApp {
 
         HabitTracker* IsAddHabitInputValid();
         void AddHabit(HabitTracker* habit);
+
+        double* IsThresholdValueValid();
     };
 }
 

@@ -54,6 +54,18 @@ std::map<std::string, Grid> GridMaker::MakeGrids(const HabitTracker& habit_track
         result[current_year_string].squares[day_index] = square;
     }
 
+    if (result.empty()) {
+        // Habit has no data. Create empty grid for this year.
+        auto today =
+            std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
+        auto year_month_day = std::chrono::year_month_day(today);
+        Grid grid{{},
+            year_month_day.year().is_leap(),
+            static_cast<int>(std::chrono::weekday(year_month_day).c_encoding())};
+        result.emplace(std::to_string(static_cast<int>(year_month_day.year())),
+            grid);
+    }
+
     // Correct positions for missing days
     for (std::pair<const std::string, Grid>& data_pair : result) {
         for (int i {0}; i < 367; ++i) {

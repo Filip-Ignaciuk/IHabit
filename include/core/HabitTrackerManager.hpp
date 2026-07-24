@@ -8,6 +8,8 @@
 class HabitTrackerManager{
     public:
     static void LoadHabitTrackers(std::filesystem::path root_path);
+    static void SaveHabitTrackers(std::filesystem::path root_path);
+
     // If habit tracker with same title already exists it will overwrite it.
     static const std::map<std::string, HabitTracker>& GetHabitTrackers();
     static void AddHabitTracker(HabitTracker habit_tracker);

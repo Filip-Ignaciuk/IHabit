@@ -34,17 +34,25 @@ void IHabitApp::IHabitApp::Run() {
             ? WindowGuiState::None : WindowGuiState::HabitsBox;
         }
 
+        // Add Habit button
+        if(GuiButton({112, 16, 32, 32}, "#8#")){
+            window_gui_state_ = (window_gui_state_ == WindowGuiState::AddHabitBox)
+            ? WindowGuiState::None : WindowGuiState::AddHabitBox;
+        }
+
+        // Save Habit button
+        if(GuiButton({160, 16, 32, 32}, "#2#")){
+            HabitTrackerManager::SaveHabitTrackers(habit_path_);
+            GuiMessageBox(small_box_inner, "Saved", "Habits saved!", "OK");
+        }
+
+
         // Help button
-        if(GuiButton({112, 16, 32, 32}, "#193#")){
+        if(GuiButton({208, 16, 32, 32}, "#193#")){
             window_gui_state_ = (window_gui_state_ == WindowGuiState::HelpBox)
             ? WindowGuiState::None : WindowGuiState::HelpBox;
         }
 
-        // Add Habit button
-        if(GuiButton({160, 16, 32, 32}, "#8#")){
-            window_gui_state_ = (window_gui_state_ == WindowGuiState::AddHabitBox)
-            ? WindowGuiState::None : WindowGuiState::AddHabitBox;
-        }
 
         // Disable scroll as it disrupts window scrollbars.
         if (window_gui_state_ == WindowGuiState::None) {
@@ -98,7 +106,7 @@ void IHabitApp::IHabitApp::Run() {
                 .height = 24},
                 title.c_str());
 
-            std::string drop_down_box_title = GetDropDownBoxTitle(iterator->second.GetAvailableYears());
+            std::string drop_down_box_title = GetDropDownBoxTitle(habit_ui_state.drop_down_box_years);
 
             if (GuiButton({initial_habit_position.x + 1104,
                 initial_habit_position.y + 8 + ((192.0f) * count),
@@ -109,6 +117,8 @@ void IHabitApp::IHabitApp::Run() {
                 ? WindowGuiState::None : WindowGuiState::RecordDayBox;
                 selected_habit_title_ = habit_tracker.GetTitle();
             }
+
+
 
             if (GuiDropdownBox({
                 .x = initial_habit_position.x + 1184,
@@ -129,9 +139,9 @@ void IHabitApp::IHabitApp::Run() {
                 habit_tracker.GetMetric().c_str());
 
             const std::string& selectedYear =
-                habit_ui_state.drop_down_box_years[habit_ui_state.drop_down_box_active];
-
+                           habit_ui_state.drop_down_box_years[habit_ui_state.drop_down_box_active];
             const Grid& grid = habit_ui_state.grids.at(selectedYear);
+
             int xDisplacement = 8;
             if (wants_weekday_displayed_) {
                 xDisplacement = 40;
@@ -195,16 +205,12 @@ void IHabitApp::IHabitApp::Run() {
 IHabitApp::IHabitApp::IHabitApp() {
     window_gui_state_ = WindowGuiState::None;
 
-    std::filesystem::path path = std::filesystem::current_path();
-    path /= "data";
-
-    if (std::filesystem::exists(path)) {
-        HabitTrackerManager::LoadHabitTrackers(path);
+    if (std::filesystem::exists(habit_path_)) {
+        HabitTrackerManager::LoadHabitTrackers(habit_path_);
     }
 
-    new_habit_threshold_colours_ = nullptr;
+    new_habit_threshold_colours_ = new std::map<double, std::string>();
     current_habit_ = nullptr;
-    new_habit_threshold_colours_ = nullptr;
 
     RefreshHabitUIStates();
 }
@@ -216,11 +222,17 @@ void IHabitApp::IHabitApp::RefreshHabitUIStates() {
     for(std::pair<std::string, HabitTracker> data_pair : HabitTrackerManager::GetHabitTrackers()){
         const std::map<std::string, Grid> grids =
             GridMaker::MakeGrids(data_pair.second);
+
+        std::vector<std::string> years;
+        for (const std::pair<const std::string, Grid>& year_pair : grids) {
+            years.push_back(year_pair.first);
+        }
+
         HabitUIState habit_ui_state{
             grids,
             false,
             0,
-            data_pair.second.GetAvailableYears()
+            years
         };
         habit_ui_states_[data_pair.first] = habit_ui_state;
     }
@@ -660,14 +672,6 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
     },
     "Threshold Colours");
 
-    GuiColorPicker({standard_box_inner.x + 1050,
-        standard_box_inner.y + 16,
-        152,
-        152
-    },"",
-    &new_threshold_colour_
-    );
-
     Rectangle threshold_colour_view;
 
     int scroll_size = 0;
@@ -679,21 +683,136 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
             standard_box_inner.x + 632,
             standard_box_inner.y + 48,
             400,
-        552
+        526
             },
             nullptr,
             (Rectangle){
                 .x = 0,
                 .y = 0,
-                .width = 1264,
+                .width = 398,
                 .height = static_cast<float>(scroll_size)},
             &new_habit_panel_offset_, &threshold_colour_view);
 
-    /*
-    BeginScissorMode();
+
+    BeginScissorMode(threshold_colour_view.x,
+    threshold_colour_view.y,
+    threshold_colour_view.width,
+    threshold_colour_view.height);
+
+    Vector2 initial_habit_position = {
+        .x = threshold_colour_view.x,
+        .y = threshold_colour_view.y + habit_panel_offset_.y
+    };
+
+    if (new_habit_threshold_colours_) {
+        auto iterator = new_habit_threshold_colours_->begin();
+        while (iterator != new_habit_threshold_colours_->end()) {
+            std::pair<const double, std::string> data_pair = *iterator;
+            Rectangle threshold_panel {
+                .x = initial_habit_position.x,
+                .y = initial_habit_position.y,
+                .width = 398,
+                .height = 48
+            };
+
+            DrawRectangle(
+                static_cast<int>(threshold_panel.x),
+                static_cast<int>(threshold_panel.y),
+                static_cast<int>(threshold_panel.width),
+                static_cast<int>(threshold_panel.height),
+                LIGHTGRAY);
+
+            DrawRectangleLines(
+                static_cast<int>(threshold_panel.x),
+                static_cast<int>(threshold_panel.y),
+                static_cast<int>(threshold_panel.width),
+                static_cast<int>(threshold_panel.height),
+                DARKGRAY);
+
+            Color color = GridMaker::StringToColor(data_pair.second);
+            DrawRectangle(threshold_panel.x + 8,
+                threshold_panel.y + 8,
+                24,
+                24,
+                color);
+
+            GuiLabel({threshold_panel.x + 40,
+                threshold_panel.y + 8,
+                128,
+                24
+            },
+            std::to_string(data_pair.first).c_str());
+
+            if (GuiButton({threshold_panel.x + 334,
+            threshold_panel.y + 8,
+            24,
+            24},
+            "#143#")) {
+                iterator = new_habit_threshold_colours_->erase(iterator);
+            }
+            else {
+                ++iterator;
+            }
+
+            initial_habit_position.y += 40;
+
+        }
+    }
 
     EndScissorMode();
-    */
+
+    GuiLabel({ standard_box_inner.x + 1050,
+    standard_box_inner.y + 8,
+    608,
+    24
+    },
+"Threshold Colour");
+
+    GuiColorPicker({standard_box_inner.x + 1050,
+        standard_box_inner.y + 48,
+        152,
+        152
+    },"",
+    &new_threshold_colour_
+    );
+
+    GuiLabel({ standard_box_inner.x + 1050,
+        standard_box_inner.y + 216,
+        608,
+        24
+    },
+    "Threshold Value");
+
+    if (GuiTextBox({standard_box_inner.x + 1050,
+        standard_box_inner.y + 256,
+        176,
+        24
+    },
+    new_threshold_value_,
+    6,
+    new_habit_threshold_value_edit_mode_)) {
+        new_habit_threshold_value_edit_mode_ = !new_habit_threshold_value_edit_mode_;
+    }
+
+    if (GuiButton({standard_box_inner.x + 1152,
+        standard_box_inner.y + 292,
+        72,
+        24
+    },
+    "Add Threshold")) {
+        double* threshold = IsThresholdValueValid();
+        if (threshold) {
+
+            char hex[10];
+            sprintf(hex, "#%02X%02X%02X", new_threshold_colour_.r,
+                new_threshold_colour_.g,
+                new_threshold_colour_.b);
+
+            new_habit_threshold_colours_->emplace(*threshold, std::string(hex));
+        }
+    }
+
+
     if (GuiButton({standard_box_inner.x + 1152,
         standard_box_inner.y + 552,
         72,
@@ -781,26 +900,55 @@ HabitTracker* IHabitApp::IHabitApp::IsAddHabitInputValid() {
     if (new_habit_title_[0] == '\0') {
         return nullptr;
     }
-
-    for (int i {0}; i < 20; ++i) {
-        title.push_back(new_habit_title_[i]);
-    }
+    title = std::string(new_habit_title_);
 
     // Description can be empty
-    for (int i {0}; i < 200; ++i) {
-        description.push_back(new_habit_description_[i]);
-    }
+    description = std::string(new_habit_description_);
 
-    //Check if metric is not empty
+    // Check if metric is not empty
     if (new_habit_metric_[0] == '\0') {
         return nullptr;
     }
 
-    for (int i {0}; i < 20; ++i) {
-        metric.push_back(new_habit_metric_[i]);
+    metric = std::string(new_habit_metric_);
+
+    // Check if that there is at least one threshold
+    if (new_habit_threshold_colours_->empty()) {
+        return nullptr;
     }
-    return nullptr;
+
+    HabitTracker* habit_tracker = new HabitTracker(title,
+        description,
+        metric,
+        *new_habit_threshold_colours_);
+    return habit_tracker;
+
 }
 void IHabitApp::IHabitApp::AddHabit(HabitTracker* habit_tracker) {
+    HabitTrackerManager::AddHabitTracker(*habit_tracker);
+    delete habit_tracker;
+    delete new_habit_threshold_colours_;
+    new_habit_threshold_colours_ = new std::map<double, std::string>();
+    RefreshHabitUIStates();
+}
 
+double* IHabitApp::IHabitApp::IsThresholdValueValid() {
+    // Check if threshold value is not empty.
+    if (new_threshold_value_[0] == '\0') {
+        return nullptr;
+    }
+
+    std::string threshold_value;
+    for (int i {0}; i < 6; ++i) {
+        threshold_value += new_threshold_value_[i];
+    }
+
+    double value = std::stod(threshold_value);
+    for (const std::pair<const double, std::string>& data_pair : *new_habit_threshold_colours_) {
+        // Cannot have identical value thresholds.
+        if (value == data_pair.first) {
+            return nullptr;
+        }
+    }
+    return new double(value);
 }
