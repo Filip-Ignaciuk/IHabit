@@ -119,7 +119,7 @@ namespace IHabitApp {
 
         // Returns pointer if valid else nullptr
         std::chrono::year_month_day* IsRecordInputValid();
-        void RecordDay(std::chrono::year_month_day* ymd);
+        void RecordDay(const std::chrono::year_month_day* ymd);
 
         HabitTracker* IsAddHabitInputValid();
         void AddHabit(const HabitTracker* habit_tracker);

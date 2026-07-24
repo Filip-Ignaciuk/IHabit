@@ -845,51 +845,44 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
 
 std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
     // Check Day
-    if (!isdigit(new_record_day_[0]) || !isdigit(new_record_day_[1])) {
-        return nullptr;
+    const std::string day_string {new_record_day_};
+
+    for (int i {0}; i < day_string.size(); ++i) {
+        if (!isdigit(day_string[i])) {
+            return nullptr;
+        }
     }
-    std::string day_string;
-    day_string.push_back(new_record_day_[0]);
-    day_string.push_back(new_record_day_[1]);
     const int day_int = std::stoi(day_string);
 
     // Check Month
-    if (!isdigit(new_record_month_[0]) || !isdigit(new_record_month_[1])) {
-        return nullptr;
+    const std::string month_string {new_record_month_};
+
+    for (int i {0}; i < month_string.size(); ++i) {
+        if (!isdigit(month_string[i])) {
+            return nullptr;
+        }
     }
-    std::string month_string;
-    month_string.push_back(new_record_month_[0]);
-    month_string.push_back(new_record_month_[1]);
     const int month_int = std::stoi(month_string);
 
+    const std::string year_string {new_record_year_};
+
     // Check Year
-    if (!isdigit(new_record_year_[0]) ||
-        !isdigit(new_record_year_[1]) ||
-        !isdigit(new_record_year_[2]) ||
-        !isdigit(new_record_year_[3])) {
-        return nullptr;
+    for (int i {0}; i < year_string.size(); ++i) {
+        if (!isdigit(year_string[i])) {
+            return nullptr;
+        }
     }
-    std::string year_string;
-    year_string.push_back(new_record_year_[0]);
-    year_string.push_back(new_record_year_[1]);
-    year_string.push_back(new_record_year_[2]);
-    year_string.push_back(new_record_year_[3]);
+
     const int year_int = std::stoi(year_string);
 
     // Check Value
-    std::string value_string;
-    value_string.push_back(new_record_value_[0]);
-    value_string.push_back(new_record_value_[1]);
-    value_string.push_back(new_record_value_[2]);
-    value_string.push_back(new_record_value_[3]);
-    value_string.push_back(new_record_value_[4]);
+    const std::string value_string {new_record_value_};
     try {
         new_record_value_double_ = std::stod(value_string);
     }
     catch (std::invalid_argument& e) {
         return nullptr;
     }
-
 
     // Check if date is valid
     auto* ymd = new std::chrono::year_month_day(std::chrono::year(year_int) /
@@ -903,27 +896,28 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
     }
 }
 
-void IHabitApp::IHabitApp::RecordDay(std::chrono::year_month_day* ymd) {
+void IHabitApp::IHabitApp::RecordDay(const std::chrono::year_month_day* ymd) {
     HabitTrackerManager::RecordDay(selected_habit_title_, ymd, new_record_value_double_);
     RefreshHabitUIStates();
 }
 
 HabitTracker* IHabitApp::IHabitApp::IsAddHabitInputValid() {
+    const auto title = std::string(new_habit_title_);
+
     // Check if title is not empty
-    if (new_habit_title_[0] == '\0') {
+    if (title.empty()) {
         return nullptr;
     }
-    const auto title = std::string(new_habit_title_);
 
     // Description can be empty
     const auto description = std::string(new_habit_description_);
 
     // Check if metric is not empty
-    if (new_habit_metric_[0] == '\0') {
+    const auto metric = std::string(new_habit_metric_);
+
+    if (metric.empty()) {
         return nullptr;
     }
-
-    const auto metric = std::string(new_habit_metric_);
 
     // Check if that there is at least one threshold
     if (new_habit_threshold_colours_->empty()) {
@@ -955,8 +949,13 @@ double* IHabitApp::IHabitApp::IsThresholdValueValid() const {
     for (int i {0}; i < 6; ++i) {
         threshold_value += new_threshold_value_[i];
     }
-
-    const double value = std::stod(threshold_value);
+    double value;
+    try {
+        value = std::stod(threshold_value);
+    }
+    catch (std::invalid_argument& e) {
+        return nullptr;
+    }
     for (const auto &key: *new_habit_threshold_colours_ | std::views::keys) {
         // Cannot have identical value thresholds.
         if (value == key) {

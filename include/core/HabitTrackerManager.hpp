@@ -21,7 +21,7 @@ class HabitTrackerManager{
     ~HabitTrackerManager() = delete;
     private:
     static std::map<std::string, HabitTracker> habit_trackers_;
-    static constexpr std::string json_extension = ".json";
+    static inline std::string_view json_extension = ".json";
 };
 
 #endif
