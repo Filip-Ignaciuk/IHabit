@@ -3,10 +3,7 @@
 
 #include <chrono>
 #include <map>
-#include <string>
-#include <utility>
 #include <vector>
-#include <set>
 class HabitTracker{
     public:
     HabitTracker() = default;
@@ -35,9 +32,9 @@ class HabitTracker{
     [[nodiscard]] std::string GetColour(double value) const;
     [[nodiscard]] const std::vector<std::string>& GetAvailableYears() const;
 
-    void SetTitle(std::string title);
-    void SetDescription(std::string description);
-    void SetMetric(std::string metric);
+    void SetTitle(const std::string &title);
+    void SetDescription(const std::string &description);
+    void SetMetric(const std::string &metric);
     void AddThresholdColour(std::pair<double, std::string> threshold_colour);
     void AddDay(std::chrono::year_month_day date, double value);
 

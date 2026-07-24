@@ -20,16 +20,16 @@ public:
 };
 
 struct Square{
-    Rectangle rectangle;
     // We assume that the square is initially not populated.
+    Rectangle rectangle{.x = 0,.y = 0,.width = 8,.height = 8};
     Color color = GridMaker::grey;
 };
 
 struct Grid {
     std::array<Square, 366> squares;
-    bool is_leap;
+    bool is_leap{};
     // Indicates which day in the week it starts, sun - 0, mon - 1 etc
-    int starting_day;
+    int starting_day{};
 };
 
 

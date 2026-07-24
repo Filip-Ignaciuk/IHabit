@@ -16,7 +16,10 @@ add_library(${PROJECT_NAME}
     src/core/HabitTrackerSerializer.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC include/core/)
+target_include_directories(${PROJECT_NAME} PUBLIC
+        include/core/
+        include/libraries
+)
 
 # Website Example
 add_executable(IHabitApp
@@ -25,8 +28,11 @@ add_executable(IHabitApp
         src/app/App.cpp
 )
 
-target_include_directories(IHabitApp PRIVATE include/gui)
-target_include_directories(IHabitApp PRIVATE include/app)
+target_include_directories(IHabitApp PRIVATE
+        include/gui
+        include/app
+        include/libraries
+)
 target_link_libraries(IHabitApp PRIVATE raylib ${PROJECT_NAME} )
 
 # Compilation for websites.

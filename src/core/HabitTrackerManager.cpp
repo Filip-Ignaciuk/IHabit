@@ -8,13 +8,12 @@
 std::map<std::string, HabitTracker> HabitTrackerManager::habit_trackers_;
 
 void HabitTrackerManager::LoadHabitTrackers(
-    std::filesystem::path root_path){
+    const std::filesystem::path& root_path){
     if(!std::filesystem::exists(root_path)){
         std::cout << "File path specified doesn't exist.\n";
         return;
     }
-    const std::string json_extension{".json"};
-    for (const std::filesystem::directory_entry& entry : 
+    for (const std::filesystem::directory_entry& entry :
         std::filesystem::directory_iterator(root_path)){
         if(!entry.exists()){
             std::cout << "Entry doesn't exist.\n";
@@ -24,7 +23,7 @@ void HabitTrackerManager::LoadHabitTrackers(
             std::cout << "Entry isn't a json file.\n";
             continue;
         }
-        std::filesystem::path file_path = entry.path();
+        const std::filesystem::path& file_path = entry.path();
         HabitTracker* habit = HabitTrackerSerializer::LoadHabitTracker(file_path);
         if(!habit){
             // Something wrong happened with the loading of the habit tracker.
@@ -35,15 +34,14 @@ void HabitTrackerManager::LoadHabitTrackers(
     }
 }
 
-void HabitTrackerManager::SaveHabitTrackers(std::filesystem::path root_path) {
+void HabitTrackerManager::SaveHabitTrackers(const std::filesystem::path& root_path) {
     if(!std::filesystem::exists(root_path)) {
         std::cout << "File path specified doesn't exist.\n";
         return;
     }
-    const std::string json_extension{".json"};
     for (const std::pair<const std::string, HabitTracker>& habit_tracker : habit_trackers_) {
         std::filesystem::path habit_path = root_path / habit_tracker.first;
-        std::filesystem::path file_path = habit_path.string() + ".json";
+        const std::filesystem::path file_path = habit_path.string() + ".json";
         HabitTrackerSerializer::SaveHabitTracker(file_path, habit_tracker.second);
     }
 }
@@ -61,7 +59,7 @@ void HabitTrackerManager::RemoveHabitTracker(const HabitTracker& habit_tracker){
 }
 
 void HabitTrackerManager::RecordDay(const std::string& title,
-    std::chrono::year_month_day* ymd,
-    double value) {
+    const std::chrono::year_month_day* ymd,
+    const double value) {
     habit_trackers_[title].AddDay(*ymd, value);
 }

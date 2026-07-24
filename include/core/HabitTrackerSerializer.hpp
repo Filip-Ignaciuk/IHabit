@@ -7,7 +7,7 @@
 class HabitTrackerSerializer{
     public:
     static HabitTracker* LoadHabitTracker(std::filesystem::path path);
-    static void SaveHabitTracker(std::filesystem::path path, const HabitTracker& habit_tracker);
+    static void SaveHabitTracker(const std::filesystem::path& path, const HabitTracker& habit_tracker);
     HabitTrackerSerializer() = delete;
     ~HabitTrackerSerializer() = delete;
 };

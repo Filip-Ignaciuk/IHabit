@@ -1,6 +1,7 @@
 #include "App.hpp"
 #define RAYGUI_IMPLEMENTATION
 #include <iostream>
+#include <ranges>
 
 #include "GridMaker.hpp"
 #include "raygui.h"
@@ -10,45 +11,63 @@ void IHabitApp::IHabitApp::Run() {
     InitWindow(1280, 720, "Habit Tracker");
 
     // Gui data
-    Rectangle scroll_panel_view = { 0, 0, 0, 0 };
-    Vector2 scroll_panel_offset = { 0, 0 };
-    Vector2 scroll_panel_bounds = { 0, 0 };
+    Rectangle scroll_panel_view = { .x = 0, .y = 0, .width = 0, .height = 0 };
+    Vector2 scroll_panel_offset = { .x = 0, .y = 0 };
+    constexpr Vector2 scroll_panel_bounds = { .x = 0, .y = 0 };
 
     while (!WindowShouldClose())
     {
-        const size_t number_of_habits = HabitTrackerManager::GetHabitTrackers().size();
         BeginDrawing();
 
         ClearBackground(RAYWHITE);
-        //GuiScrollPanel(Rectangle bounds, empty, Rectangle content, *scroll, Rectangle *view);
 
         // Settings button
-        if(GuiButton({16, 16, 32, 32}, "#142#")){
+        if(GuiButton({.x = 16,
+            .y = 16,
+            .width = 32,
+            .height = 32},
+            "#142#")){
             window_gui_state_ = (window_gui_state_ == WindowGuiState::SettingsBox)
             ? WindowGuiState::None : WindowGuiState::SettingsBox;
         }
 
         // Habit management button
-        if(GuiButton({64, 16, 32, 32}, "#214#")){
+        if(GuiButton({.x = 64,
+            .y = 16,
+            .width = 32,
+            .height = 32},
+            "#214#")){
             window_gui_state_ = (window_gui_state_ == WindowGuiState::HabitsBox)
             ? WindowGuiState::None : WindowGuiState::HabitsBox;
         }
 
         // Add Habit button
-        if(GuiButton({112, 16, 32, 32}, "#8#")){
+        if(GuiButton({.x = 112,
+            .y = 16,
+            .width = 32,
+            .height = 32},
+            "#8#")){
             window_gui_state_ = (window_gui_state_ == WindowGuiState::AddHabitBox)
             ? WindowGuiState::None : WindowGuiState::AddHabitBox;
         }
 
         // Save Habit button
-        if(GuiButton({160, 16, 32, 32}, "#2#")){
+        if(GuiButton({.x = 160,
+            .y = 16,
+            .width = 32,
+            .height = 32},
+            "#2#")){
             HabitTrackerManager::SaveHabitTrackers(habit_path_);
             GuiMessageBox(small_box_inner, "Saved", "Habits saved!", "OK");
         }
 
 
         // Help button
-        if(GuiButton({208, 16, 32, 32}, "#193#")){
+        if(GuiButton({.x = 208,
+            .y = 16,
+            .width = 32,
+            .height = 32},
+            "#193#")){
             window_gui_state_ = (window_gui_state_ == WindowGuiState::HelpBox)
             ? WindowGuiState::None : WindowGuiState::HelpBox;
         }
@@ -57,10 +76,10 @@ void IHabitApp::IHabitApp::Run() {
         // Disable scroll as it disrupts window scrollbars.
         if (window_gui_state_ == WindowGuiState::None) {
             GuiScrollPanel((Rectangle){
-            0,
-            64,
-            1280 - scroll_panel_bounds.x,
-            656 - scroll_panel_bounds.y},
+            .x = 0,
+            .y = 64,
+            .width = 1280 - scroll_panel_bounds.x,
+            .height = 656 - scroll_panel_bounds.y},
             nullptr,
             (Rectangle){
                 .x = 0,
@@ -148,7 +167,7 @@ void IHabitApp::IHabitApp::Run() {
             }
 
             for(Square square : grid.squares) {
-                Color color = square.color;
+                const Color color = square.color;
                 DrawRectangle(
                     static_cast<int>(initial_habit_position.x + square.rectangle.x) + xDisplacement,
                     static_cast<int>(initial_habit_position.y + square.rectangle.y +
@@ -162,10 +181,11 @@ void IHabitApp::IHabitApp::Run() {
                 int weekday_index = 0;
                 for (const std::string_view& weekday : weekdays) {
                     GuiSetStyle(LABEL, TEXT_SIZE, 8);
-                    GuiLabel({ initial_habit_position.x + 8,
-                        initial_habit_position.y + (16 * weekday_index) + 64 +((192) * count),
-                        24,
-                        24
+                    GuiLabel({ .x = initial_habit_position.x + 8,
+                        .y = initial_habit_position.y +
+                            (16 * weekday_index) + 64 +((192) * count),
+                        .width = 24,
+                        .height = 24
                     },
                     std::string(weekday).c_str());
                     GuiSetStyle(LABEL, TEXT_SIZE, 16);
@@ -224,21 +244,22 @@ void IHabitApp::IHabitApp::RefreshHabitUIStates() {
             GridMaker::MakeGrids(data_pair.second);
 
         std::vector<std::string> years;
-        for (const std::pair<const std::string, Grid>& year_pair : grids) {
-            years.push_back(year_pair.first);
+        years.reserve(grids.size());
+        for (const auto &key: grids | std::views::keys) {
+            years.push_back(key);
         }
 
         HabitUIState habit_ui_state{
-            grids,
-            false,
-            0,
-            years
+            .grids = grids,
+            .drop_down_box_edit_mode = false,
+            .drop_down_box_active = 0,
+            .drop_down_box_years = years
         };
         habit_ui_states_[data_pair.first] = habit_ui_state;
     }
 }
 
-std::string IHabitApp::IHabitApp::GetDropDownBoxTitle(std::vector<std::string> years) {
+std::string IHabitApp::IHabitApp::GetDropDownBoxTitle(const std::vector<std::string> &years) {
     const size_t size = years.size();
     std::string title;
     for (int i = 0; i < size; ++i) {
@@ -261,10 +282,10 @@ void IHabitApp::IHabitApp::ShowSettingsMenu(){
     },
     "Display days of the week: ");
 
-    GuiCheckBox({standard_box_inner.x + standard_box_inner.width / 2 + 8,
-    standard_box_inner.y + 8,
-        24,
-        24
+    GuiCheckBox({.x = standard_box_inner.x + standard_box_inner.width / 2 + 8,
+        .y = standard_box_inner.y + 8,
+        .width = 24,
+        .height = 24
     },
     "",
     &wants_weekday_displayed_);
@@ -467,39 +488,39 @@ void IHabitApp::IHabitApp::ShowHelpMenu(){
     WindowGuiState::None : WindowGuiState::HelpBox;
 
     GuiLabel({
-        standard_box_inner.x + 8,
-        standard_box_inner.y + 8,
-        standard_box_inner.width,
-        24,
+        .x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 8,
+        .width = standard_box_inner.width,
+        .height = 24,
     },
         "Welcome to an example of the habit tracker library!");
     GuiLabel({
-        standard_box_inner.x + 8,
-        standard_box_inner.y + 40,
-        standard_box_inner.width,
-        24,
+        .x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 40,
+        .width = standard_box_inner.width,
+        .height = 24,
     },
     "Here you can track your habits, create and delete them.");
     GuiLabel({
-        standard_box_inner.x + 8,
-        standard_box_inner.y + 72,
-        standard_box_inner.width,
-        24,
+        .x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 72,
+        .width = standard_box_inner.width,
+        .height = 24,
     },
     "Click on the Habit menu, the middle button on the top left of the screen, to add, remove, and see information about your habits. Enjoy :)");
 
     GuiLabel({
-        standard_box_inner.x + 8,
-        standard_box_inner.y + 104,
-        standard_box_inner.width,
-        24,
+        .x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 104,
+        .width = standard_box_inner.width,
+        .height = 24,
     },
     "Credits: Filip Ignaciuk");
 
 }
 
 void IHabitApp::IHabitApp::ShowRecordDayMenu() {
-    std::string window_box_title = "Record Day for " + selected_habit_title_;
+    const std::string window_box_title = "Record Day for " + selected_habit_title_;
     if (GuiWindowBox(small_box_inner, window_box_title.c_str())) {
         window_gui_state_ = WindowGuiState::None;
         previous_selected_habit_title_ = selected_habit_title_;
@@ -519,17 +540,17 @@ void IHabitApp::IHabitApp::ShowRecordDayMenu() {
 
     // Date
     // Day
-    GuiLabel({small_box_inner.x + 32,
-        small_box_inner.y + 32,
-        72,
-        24
+    GuiLabel({.x = small_box_inner.x + 32,
+        .y = small_box_inner.y + 32,
+        .width = 72,
+        .height = 24
     },
     "Day");
 
-    if (GuiTextBox({small_box_inner.x + 32,
-    small_box_inner.y + 64,
-        72,
-        24},
+    if (GuiTextBox({.x = small_box_inner.x + 32,
+    .y = small_box_inner.y + 64,
+        .width = 72,
+        .height = 24},
         new_record_day_,
             3,
             day_edit_mode_
@@ -538,17 +559,17 @@ void IHabitApp::IHabitApp::ShowRecordDayMenu() {
     }
 
     // Month
-    GuiLabel({small_box_inner.x + 120,
-        small_box_inner.y + 32,
-        72,
-        24
+    GuiLabel({.x = small_box_inner.x + 120,
+        .y = small_box_inner.y + 32,
+        .width = 72,
+        .height = 24
     },
     "Month");
 
-    if (GuiTextBox({small_box_inner.x + 120,
-    small_box_inner.y + 64,
-        72,
-        24},
+    if (GuiTextBox({.x = small_box_inner.x + 120,
+    .y = small_box_inner.y + 64,
+        .width = 72,
+        .height = 24},
         new_record_month_,
             3,
             month_edit_mode_
@@ -557,17 +578,17 @@ void IHabitApp::IHabitApp::ShowRecordDayMenu() {
     }
 
     // Year
-    GuiLabel({small_box_inner.x + 208,
-        small_box_inner.y + 32,
-        72,
-        24
+    GuiLabel({.x = small_box_inner.x + 208,
+        .y = small_box_inner.y + 32,
+        .width = 72,
+        .height = 24
     },
     "Year");
 
-    if (GuiTextBox({small_box_inner.x + 208,
-    small_box_inner.y + 64,
-        72,
-        24},
+    if (GuiTextBox({.x = small_box_inner.x + 208,
+    .y = small_box_inner.y + 64,
+        .width = 72,
+        .height = 24},
         new_record_year_,
             5,
             year_edit_mode_
@@ -576,17 +597,17 @@ void IHabitApp::IHabitApp::ShowRecordDayMenu() {
     }
 
     // Value
-    GuiLabel({small_box_inner.x + 32,
-        small_box_inner.y + 96,
-        256,
-        24
+    GuiLabel({.x = small_box_inner.x + 32,
+        .y = small_box_inner.y + 96,
+        .width = 256,
+        .height = 24
     },
     "Value");
 
-    if (GuiTextBox({small_box_inner.x + 32,
-    small_box_inner.y + 128,
-        160,
-        24},
+    if (GuiTextBox({.x = small_box_inner.x + 32,
+    .y = small_box_inner.y + 128,
+        .width = 160,
+        .height = 24},
         new_record_value_,
             6,
             value_edit_mode_
@@ -594,13 +615,12 @@ void IHabitApp::IHabitApp::ShowRecordDayMenu() {
         value_edit_mode_ = !value_edit_mode_;
     }
 
-    if (GuiButton({small_box_inner.x + 208,
-        small_box_inner.y + 128,
-        72,
-        24},
+    if (GuiButton({.x = small_box_inner.x + 208,
+        .y = small_box_inner.y + 128,
+        .width = 72,
+        .height = 24},
         "Add")) {
-        std::chrono::year_month_day* result = IsRecordInputValid();
-        if (result) {
+        if (std::chrono::year_month_day* result = IsRecordInputValid()) {
             RecordDay(result);
         }
     }
@@ -611,17 +631,17 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
     window_gui_state_ = (GuiWindowBox(standard_box, "Add habit")) ?
     WindowGuiState::None : WindowGuiState::AddHabitBox;
 
-    GuiLabel({ standard_box_inner.x + 8,
-        standard_box_inner.y + 8,
-        608,
-        24
+    GuiLabel({ .x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 8,
+        .width = 608,
+        .height = 24
     },
     "Name");
 
-    if (GuiTextBox({ standard_box_inner.x + 8,
-        standard_box_inner.y + 48,
-        608,
-        24
+    if (GuiTextBox({ .x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 48,
+        .width = 608,
+        .height = 24
     },
     new_habit_title_,
     20,
@@ -629,17 +649,17 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
         new_habit_title_edit_mode_ = !new_habit_title_edit_mode_;
     }
 
-    GuiLabel({ standard_box_inner.x + 8,
-        standard_box_inner.y + 88,
-        608,
-        24
+    GuiLabel({ .x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 88,
+        .width = 608,
+        .height = 24
     },
     "Description");
 
-    if (GuiTextBox({standard_box_inner.x + 8,
-        standard_box_inner.y + 128,
-        608,
-        24
+    if (GuiTextBox({.x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 128,
+        .width = 608,
+        .height = 24
     },
     new_habit_description_,
     200,
@@ -647,17 +667,17 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
         new_habit_description_edit_mode_ = !new_habit_description_edit_mode_;
     }
 
-    GuiLabel({ standard_box_inner.x + 8,
-        standard_box_inner.y + 168,
-        608,
-        24
+    GuiLabel({ .x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 168,
+        .width = 608,
+        .height = 24
     },
     "Metric");
 
-    if (GuiTextBox({standard_box_inner.x + 8,
-        standard_box_inner.y + 208,
-        608,
-        24
+    if (GuiTextBox({.x = standard_box_inner.x + 8,
+        .y = standard_box_inner.y + 208,
+        .width = 608,
+        .height = 24
     },
     new_habit_metric_,
     20,
@@ -665,25 +685,25 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
         new_habit_metric_edit_mode_ = !new_habit_metric_edit_mode_;
     }
 
-    GuiLabel({ standard_box_inner.x + 632,
-        standard_box_inner.y + 8,
-        608,
-        24
+    GuiLabel({ .x = standard_box_inner.x + 632,
+        .y = standard_box_inner.y + 8,
+        .width = 608,
+        .height = 24
     },
     "Threshold Colours");
 
     Rectangle threshold_colour_view;
 
-    int scroll_size = 0;
+    size_t scroll_size = 0;
     if (new_habit_threshold_colours_) {
         scroll_size = 192 * new_habit_threshold_colours_->size();
     }
 
     GuiScrollPanel((Rectangle){
-            standard_box_inner.x + 632,
-            standard_box_inner.y + 48,
-            400,
-        526
+            .x = standard_box_inner.x + 632,
+            .y = standard_box_inner.y + 48,
+            .width = 400,
+            .height = 526
             },
             nullptr,
             (Rectangle){
@@ -694,10 +714,10 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
             &new_habit_panel_offset_, &threshold_colour_view);
 
 
-    BeginScissorMode(threshold_colour_view.x,
-    threshold_colour_view.y,
-    threshold_colour_view.width,
-    threshold_colour_view.height);
+    BeginScissorMode(static_cast<int>(threshold_colour_view.x),
+    static_cast<int>(threshold_colour_view.y),
+    static_cast<int>(threshold_colour_view.width),
+    static_cast<int>(threshold_colour_view.height));
 
     Vector2 initial_habit_position = {
         .x = threshold_colour_view.x,
@@ -708,7 +728,7 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
         auto iterator = new_habit_threshold_colours_->begin();
         while (iterator != new_habit_threshold_colours_->end()) {
             std::pair<const double, std::string> data_pair = *iterator;
-            Rectangle threshold_panel {
+            const Rectangle threshold_panel {
                 .x = initial_habit_position.x,
                 .y = initial_habit_position.y,
                 .width = 398,
@@ -729,24 +749,24 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
                 static_cast<int>(threshold_panel.height),
                 DARKGRAY);
 
-            Color color = GridMaker::StringToColor(data_pair.second);
-            DrawRectangle(threshold_panel.x + 8,
-                threshold_panel.y + 8,
+            const Color color = GridMaker::StringToColor(data_pair.second);
+            DrawRectangle(static_cast<int>(threshold_panel.x + 8),
+                static_cast<int>(threshold_panel.y + 8),
                 24,
                 24,
                 color);
 
-            GuiLabel({threshold_panel.x + 40,
-                threshold_panel.y + 8,
-                128,
-                24
+            GuiLabel({.x = threshold_panel.x + 40,
+                .y = threshold_panel.y + 8,
+                .width = 128,
+                .height = 24
             },
             std::to_string(data_pair.first).c_str());
 
-            if (GuiButton({threshold_panel.x + 334,
-            threshold_panel.y + 8,
-            24,
-            24},
+            if (GuiButton({.x = threshold_panel.x + 334,
+            .y = threshold_panel.y + 8,
+            .width = 24,
+            .height = 24},
             "#143#")) {
                 iterator = new_habit_threshold_colours_->erase(iterator);
             }
@@ -761,32 +781,32 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
 
     EndScissorMode();
 
-    GuiLabel({ standard_box_inner.x + 1050,
-    standard_box_inner.y + 8,
-    608,
-    24
+    GuiLabel({ .x = standard_box_inner.x + 1050,
+    .y = standard_box_inner.y + 8,
+    .width = 608,
+    .height = 24
     },
 "Threshold Colour");
 
-    GuiColorPicker({standard_box_inner.x + 1050,
-        standard_box_inner.y + 48,
-        152,
-        152
+    GuiColorPicker({.x = standard_box_inner.x + 1050,
+        .y = standard_box_inner.y + 48,
+        .width = 152,
+        .height = 152
     },"",
     &new_threshold_colour_
     );
 
-    GuiLabel({ standard_box_inner.x + 1050,
-        standard_box_inner.y + 216,
-        608,
-        24
+    GuiLabel({ .x = standard_box_inner.x + 1050,
+        .y = standard_box_inner.y + 216,
+        .width = 608,
+        .height = 24
     },
     "Threshold Value");
 
-    if (GuiTextBox({standard_box_inner.x + 1050,
-        standard_box_inner.y + 256,
-        176,
-        24
+    if (GuiTextBox({.x = standard_box_inner.x + 1050,
+        .y = standard_box_inner.y + 256,
+        .width = 176,
+        .height = 24
     },
     new_threshold_value_,
     6,
@@ -794,15 +814,13 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
         new_habit_threshold_value_edit_mode_ = !new_habit_threshold_value_edit_mode_;
     }
 
-    if (GuiButton({standard_box_inner.x + 1152,
-        standard_box_inner.y + 292,
-        72,
-        24
+    if (GuiButton({.x = standard_box_inner.x + 1152,
+        .y = standard_box_inner.y + 292,
+        .width = 72,
+        .height = 24
     },
     "Add Threshold")) {
-        double* threshold = IsThresholdValueValid();
-        if (threshold) {
-
+        if (double* threshold = IsThresholdValueValid()) {
             char hex[10];
             sprintf(hex, "#%02X%02X%02X", new_threshold_colour_.r,
                 new_threshold_colour_.g,
@@ -813,14 +831,13 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
     }
 
 
-    if (GuiButton({standard_box_inner.x + 1152,
-        standard_box_inner.y + 552,
-        72,
-        24
+    if (GuiButton({.x = standard_box_inner.x + 1152,
+        .y = standard_box_inner.y + 552,
+        .width = 72,
+        .height = 24
     },
     "Add")) {
-        HabitTracker* habit_tracker = IsAddHabitInputValid();
-        if (habit_tracker) {
+        if (HabitTracker* habit_tracker = IsAddHabitInputValid()) {
             AddHabit(habit_tracker);
         }
     }
@@ -834,7 +851,7 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
     std::string day_string;
     day_string.push_back(new_record_day_[0]);
     day_string.push_back(new_record_day_[1]);
-    int day_int = std::stoi(day_string);
+    const int day_int = std::stoi(day_string);
 
     // Check Month
     if (!isdigit(new_record_month_[0]) || !isdigit(new_record_month_[1])) {
@@ -843,7 +860,7 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
     std::string month_string;
     month_string.push_back(new_record_month_[0]);
     month_string.push_back(new_record_month_[1]);
-    int month_int = std::stoi(month_string);
+    const int month_int = std::stoi(month_string);
 
     // Check Year
     if (!isdigit(new_record_year_[0]) ||
@@ -857,7 +874,7 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
     year_string.push_back(new_record_year_[1]);
     year_string.push_back(new_record_year_[2]);
     year_string.push_back(new_record_year_[3]);
-    int year_int = std::stoi(year_string);
+    const int year_int = std::stoi(year_string);
 
     // Check Value
     std::string value_string;
@@ -875,7 +892,7 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
 
 
     // Check if date is valid
-    std::chrono::year_month_day* ymd = new std::chrono::year_month_day(std::chrono::year(year_int) /
+    auto* ymd = new std::chrono::year_month_day(std::chrono::year(year_int) /
         std::chrono::month(month_int) /
             std::chrono::day(day_int));
     if (ymd->ok()) {
@@ -892,39 +909,35 @@ void IHabitApp::IHabitApp::RecordDay(std::chrono::year_month_day* ymd) {
 }
 
 HabitTracker* IHabitApp::IHabitApp::IsAddHabitInputValid() {
-    std::string title;
-    std::string description;
-    std::string metric;
-
     // Check if title is not empty
     if (new_habit_title_[0] == '\0') {
         return nullptr;
     }
-    title = std::string(new_habit_title_);
+    const auto title = std::string(new_habit_title_);
 
     // Description can be empty
-    description = std::string(new_habit_description_);
+    const auto description = std::string(new_habit_description_);
 
     // Check if metric is not empty
     if (new_habit_metric_[0] == '\0') {
         return nullptr;
     }
 
-    metric = std::string(new_habit_metric_);
+    const auto metric = std::string(new_habit_metric_);
 
     // Check if that there is at least one threshold
     if (new_habit_threshold_colours_->empty()) {
         return nullptr;
     }
 
-    HabitTracker* habit_tracker = new HabitTracker(title,
+    auto* habit_tracker = new HabitTracker(title,
         description,
         metric,
         *new_habit_threshold_colours_);
     return habit_tracker;
 
 }
-void IHabitApp::IHabitApp::AddHabit(HabitTracker* habit_tracker) {
+void IHabitApp::IHabitApp::AddHabit(const HabitTracker* habit_tracker) {
     HabitTrackerManager::AddHabitTracker(*habit_tracker);
     delete habit_tracker;
     delete new_habit_threshold_colours_;
@@ -932,7 +945,7 @@ void IHabitApp::IHabitApp::AddHabit(HabitTracker* habit_tracker) {
     RefreshHabitUIStates();
 }
 
-double* IHabitApp::IHabitApp::IsThresholdValueValid() {
+double* IHabitApp::IHabitApp::IsThresholdValueValid() const {
     // Check if threshold value is not empty.
     if (new_threshold_value_[0] == '\0') {
         return nullptr;
@@ -943,10 +956,10 @@ double* IHabitApp::IHabitApp::IsThresholdValueValid() {
         threshold_value += new_threshold_value_[i];
     }
 
-    double value = std::stod(threshold_value);
-    for (const std::pair<const double, std::string>& data_pair : *new_habit_threshold_colours_) {
+    const double value = std::stod(threshold_value);
+    for (const auto &key: *new_habit_threshold_colours_ | std::views::keys) {
         // Cannot have identical value thresholds.
-        if (value == data_pair.first) {
+        if (value == key) {
             return nullptr;
         }
     }

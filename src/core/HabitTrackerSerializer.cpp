@@ -2,12 +2,10 @@
 #include "HabitTracker.hpp"
 #include "json.hpp"
 #include <chrono>
-#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
-#include <streambuf>
 #include <string>
 #include <utility>
 
@@ -72,7 +70,7 @@ HabitTracker* HabitTrackerSerializer::LoadHabitTracker(std::filesystem::path pat
     try {
         threshold_colours_temporary = 
         json_file["information"]["thresholds"].get<std::map<std::string, std::string>>();
-    } catch (nlohmann::json::type_error exception) {
+    } catch (const nlohmann::json::type_error& exception) {
         std::cout << "Incorrect type expected in thresholds.\n";
         std::cout << exception.what();
         return nullptr;
@@ -94,7 +92,7 @@ HabitTracker* HabitTrackerSerializer::LoadHabitTracker(std::filesystem::path pat
     try{
         data_temporary = json_file["data"].get<std::map<std::string, double>>();
     }
-    catch (nlohmann::json::type_error exception){
+    catch (const nlohmann::json::type_error& exception){
         std::cout << "Incorrect type expected in thresholds.\n";
         std::cout << exception.what();
         return nullptr;
@@ -107,8 +105,8 @@ HabitTracker* HabitTrackerSerializer::LoadHabitTracker(std::filesystem::path pat
         std::string year = date.substr(6, 4);
         std::string month = date.substr(3, 2);
         std::string day = date.substr(0, 2);
-        unsigned int unsigned_month = static_cast<unsigned int>(std::stoi(month));
-        unsigned int unsigned_day = static_cast<unsigned int>(std::stoi(day));
+        auto unsigned_month = static_cast<unsigned int>(std::stoi(month));
+        auto unsigned_day = static_cast<unsigned int>(std::stoi(day));
         std::chrono::year_month_day first_day{
         std::chrono::year{std::stoi(year)}, 
         std::chrono::month{unsigned_month}, 
@@ -121,7 +119,7 @@ HabitTracker* HabitTrackerSerializer::LoadHabitTracker(std::filesystem::path pat
     return new HabitTracker(title, description, metric, threshold_colours, data);
 }
 
-void HabitTrackerSerializer::SaveHabitTracker(std::filesystem::path path, 
+void HabitTrackerSerializer::SaveHabitTracker(const std::filesystem::path& path,
     const HabitTracker& habit_tracker
 ){
     // Every save completely overwrites the previous file if it existed,
@@ -138,10 +136,13 @@ void HabitTrackerSerializer::SaveHabitTracker(std::filesystem::path path,
         json_file["information"]["thresholds"][key] = threshold_colour.second;
     }
 
-    std::map<std::chrono::year_month_day, double> entry_data = habit_tracker.GetData();
-    for(std::pair<std::chrono::year_month_day, double> entry : entry_data){
+    for(std::map<std::chrono::year_month_day, double> entry_data =
+        habit_tracker.GetData();
+        std::pair<std::chrono::year_month_day, double> entry : entry_data){
         std::chrono::year_month_day chrono_date = entry.first;
-        std::string date = std::to_string(static_cast<unsigned int>(chrono_date.day())) + "/" + std::to_string(static_cast<unsigned int>(chrono_date.month())) + "/" + std::to_string(static_cast<int>(chrono_date.year()));
+        std::string date = std::to_string(static_cast<unsigned int>(chrono_date.day())) +
+            "/" + std::to_string(static_cast<unsigned int>(chrono_date.month())) +
+                "/" + std::to_string(static_cast<int>(chrono_date.year()));
         json_file["data"][date] = entry.second;
     }
     output << json_file;

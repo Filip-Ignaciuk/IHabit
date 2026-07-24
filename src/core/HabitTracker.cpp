@@ -1,17 +1,19 @@
 #include "HabitTracker.hpp"
 #include <chrono>
 #include <iterator>
+#include <ranges>
+#include <set>
 #include <string>
 #include <utility>
 
-HabitTracker::HabitTracker(std::string title, 
+HabitTracker::HabitTracker(std::string title,
         std::string description, 
         std::string metric, 
         std::map<double, std::string> threshold_colours) :
-        title_(title),
-        description_(description),
-        metric_(metric),
-        threshold_colours_(threshold_colours){
+        title_(std::move(title)),
+        description_(std::move(description)),
+        metric_(std::move(metric)),
+        threshold_colours_(std::move(threshold_colours)){
         UpdateAvailableYears();
 }
 
@@ -20,11 +22,11 @@ HabitTracker::HabitTracker(std::string title,
         std::string metric,
         std::map<double, std::string> threshold_colours,
         std::map<std::chrono::year_month_day, double> data) :
-        title_(title),
-        description_(description),
-        metric_(metric),
-        threshold_colours_(threshold_colours),
-        data_(data){
+        title_(std::move(title)),
+        description_(std::move(description)),
+        metric_(std::move(metric)),
+        threshold_colours_(std::move(threshold_colours)),
+        data_(std::move(data)){
         UpdateAvailableYears();
 }
 
@@ -48,9 +50,9 @@ const std::map<std::chrono::year_month_day, double>& HabitTracker::GetData() con
     return data_;
 }
 
-std::string HabitTracker::GetColour(double value) const{
+std::string HabitTracker::GetColour(const double value) const{
     std::pair<double, std::string> previous = *threshold_colours_.begin();
-    for(std::pair<double, std::string> pair : threshold_colours_){
+    for(const std::pair<double, std::string> pair : threshold_colours_){
         if(value <= pair.first){
             break;
         }
@@ -63,15 +65,15 @@ std::string HabitTracker::GetColour(double value) const{
     return available_years_;
 }
 
-void HabitTracker::SetTitle(std::string title){
+void HabitTracker::SetTitle(const std::string &title){
     title_ = title;
 }
 
-void HabitTracker::SetDescription(std::string description){
+void HabitTracker::SetDescription(const std::string &description){
     description_ = description;
 }
 
-void HabitTracker::SetMetric(std::string metric){
+void HabitTracker::SetMetric(const std::string &metric){
     metric_ = metric;
 }
 
@@ -95,8 +97,8 @@ void HabitTracker::UpdateAvailableYears(){
     }
     available_years_.clear();
     std::set<std::string> available_years;
-    for (const std::pair<std::chrono::year_month_day, double>& pair : data_) {
-        available_years.insert(std::to_string(static_cast<int>(pair.first.year())));
+    for (const auto &key: data_ | std::views::keys) {
+        available_years.insert(std::to_string(static_cast<int>(key.year())));
     }
 
     for (const std::string& year : available_years) {

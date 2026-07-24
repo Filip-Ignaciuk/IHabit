@@ -9,7 +9,7 @@
 #include "GridMaker.hpp"
 
 class HabitTracker;
-class Square;
+struct Square;
 
 namespace IHabitApp {
     // GUI
@@ -73,7 +73,7 @@ namespace IHabitApp {
         char new_habit_description_[200] = {};
         char new_habit_metric_[20] = {};
         std::map<double, std::string>* new_habit_threshold_colours_;
-        Color new_threshold_colour_;
+        Color new_threshold_colour_ = {};
         char new_threshold_value_[6] = {};
 
         bool new_habit_title_edit_mode_ = false;
@@ -90,7 +90,7 @@ namespace IHabitApp {
         char new_record_month_[3] = {};
         char new_record_year_[5] = {};
         char new_record_value_[6] = {};
-        double new_record_value_double_;
+        double new_record_value_double_ = 0.0;
 
         bool day_edit_mode_ = false;
         bool month_edit_mode_ = false;
@@ -109,7 +109,7 @@ namespace IHabitApp {
 
         void RefreshHabitUIStates();
 
-        static std::string GetDropDownBoxTitle(std::vector<std::string> years);
+        static std::string GetDropDownBoxTitle(const std::vector<std::string> &years);
 
         void ShowSettingsMenu();
         void ShowHabitsMenu();
@@ -122,9 +122,9 @@ namespace IHabitApp {
         void RecordDay(std::chrono::year_month_day* ymd);
 
         HabitTracker* IsAddHabitInputValid();
-        void AddHabit(HabitTracker* habit);
+        void AddHabit(const HabitTracker* habit_tracker);
 
-        double* IsThresholdValueValid();
+        double* IsThresholdValueValid() const;
     };
 }
 
