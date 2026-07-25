@@ -2,12 +2,15 @@
 #define HABIT_TRACKER_MANAGER_HPP
 
 #include "HabitTracker.hpp"
+#include "HabitTrackerSerializer.hpp"
 #include <filesystem>
 
 class HabitTrackerManager{
     public:
-    static void LoadHabitTrackers(const std::filesystem::path& root_path);
-    static void SaveHabitTrackers(const std::filesystem::path& root_path);
+    static void LoadHabitTrackers(const std::filesystem::path& root_path,
+        const std::unique_ptr<HabitTrackerSerializer>& habit_tracker_serializer);
+    static void SaveHabitTrackers(const std::filesystem::path& root_path,
+        const std::unique_ptr<HabitTrackerSerializer>& habit_tracker_serializer);
 
     // If habit tracker with same title already exists it will overwrite it.
     static const std::map<std::string, HabitTracker>& GetHabitTrackers();

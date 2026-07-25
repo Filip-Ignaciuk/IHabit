@@ -5,17 +5,19 @@
 #include <raylib.h>
 #include <string>
 #include <vector>
+#include <string_view>
 
 #include "GridMaker.hpp"
+#include "HabitTrackerSerializer.hpp"
+
+namespace IApp {
+    class Error;
+}
 
 class HabitTracker;
 struct Square;
 
 namespace IHabitApp {
-    // GUI
-    #define reference_width_resolution 1280.0f
-    #define reference_height_resolution 720.0f
-
     enum class WindowGuiState{
         None,
         SettingsBox,
@@ -66,7 +68,12 @@ namespace IHabitApp {
     private:
         WindowGuiState window_gui_state_;
         std::map<std::string, HabitUIState> habit_ui_states_;
+
+        std::vector<IApp::Error> errors_;
+
+        std::filesystem::path current_path_ = std::filesystem::current_path();
         std::filesystem::path habit_path_ = std::filesystem::current_path() /= "data";
+        std::unique_ptr<HabitTrackerSerializer> habit_tracker_serializer_;
 
         // Adding Habit data
         char new_habit_title_[20] = {};

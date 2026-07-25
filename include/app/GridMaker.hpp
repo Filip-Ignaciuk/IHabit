@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include "HabitTracker.hpp"
 #include <map>
+#include <array>
 
 struct Grid;
 

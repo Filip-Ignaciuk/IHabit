@@ -8,7 +8,6 @@
 std::map<std::string, Grid> GridMaker::MakeGrids(const HabitTracker& habit_tracker){
     std::map<std::string, Grid> result;
 
-
     for(std::pair<std::chrono::year_month_day, double> data_pair :
         habit_tracker.GetData()){
 
@@ -59,16 +58,19 @@ std::map<std::string, Grid> GridMaker::MakeGrids(const HabitTracker& habit_track
         auto today =
             std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
         auto year_month_day = std::chrono::year_month_day(today);
-        Grid grid{{},
-            year_month_day.year().is_leap(),
-            static_cast<int>(std::chrono::weekday(year_month_day).c_encoding())};
+        std::chrono::year_month_day jan_1 =
+            std::chrono::year(year_month_day.year()) / std::chrono::January / 1;
+        Grid grid{
+            .squares = {},
+            .is_leap = year_month_day.year().is_leap(),
+            .starting_day = static_cast<int>(std::chrono::weekday(jan_1).c_encoding())};
         result.emplace(std::to_string(static_cast<int>(year_month_day.year())),
             grid);
     }
 
     // Correct positions for missing days
     for (std::pair<const std::string, Grid>& data_pair : result) {
-        for (int i {0}; i < 367; ++i) {
+        for (int i {0}; i < 366; ++i) {
             Square square = data_pair.second.squares[i];
             if (square.color.r == grey.r &&
                 square.color.g == grey.g &&
@@ -85,17 +87,16 @@ std::map<std::string, Grid> GridMaker::MakeGrids(const HabitTracker& habit_track
                     std::chrono::weekday(
                         days).c_encoding());
                 square.rectangle = {
-                    static_cast<float>((column) * 16),
-                    static_cast<float>((row) * 16),
-                    8,
-                    8
+                    .x = static_cast<float>((column) * 16),
+                    .y = static_cast<float>((row) * 16),
+                    .width = 8,
+                    .height = 8
                 };
             }
             data_pair.second.squares[i] = square;
         }
 
-        std::chrono::year year { std::stoi(data_pair.first)};
-        if (!year.is_leap()) {
+        if (std::chrono::year year { std::stoi(data_pair.first)}; !year.is_leap()) {
             data_pair.second.squares[365].color.a = 0;
         }
     }

@@ -6,6 +6,12 @@
 #include "GridMaker.hpp"
 #include "raygui.h"
 #include "HabitTrackerManager.hpp"
+#include "HabitTrackerSerializerFactory.hpp"
+#include "ErrorManager.hpp"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 void IHabitApp::IHabitApp::Run() {
     InitWindow(1280, 720, "Habit Tracker");
@@ -19,7 +25,14 @@ void IHabitApp::IHabitApp::Run() {
     {
         BeginDrawing();
 
+
+
         ClearBackground(RAYWHITE);
+
+        // Handling Errors
+        if(IApp::ErrorManager::IsQueueNotEmpty() && errors_.size() != 5){
+            errors_.emplace_back(IApp::ErrorManager::GetNextError());
+        }
 
         // Settings button
         if(GuiButton({.x = 16,
@@ -57,7 +70,7 @@ void IHabitApp::IHabitApp::Run() {
             .width = 32,
             .height = 32},
             "#2#")){
-            HabitTrackerManager::SaveHabitTrackers(habit_path_);
+            HabitTrackerManager::SaveHabitTrackers(habit_path_, habit_tracker_serializer_);
             GuiMessageBox(small_box_inner, "Saved", "Habits saved!", "OK");
         }
 
@@ -216,6 +229,129 @@ void IHabitApp::IHabitApp::Run() {
             ShowAddHabitMenu();
         }
 
+        // Displaying Errors
+        Vector2 startingPosition = { 960, 648 };
+        for (auto iterator = errors_.begin(); iterator != errors_.end();){
+            IApp::Error error = *iterator;
+            if(error.GetErrorSeverity() == IApp::ErrorSeverity::FatalError){
+                break;
+            }
+            if(error.GetErrorSeverity() == IApp::ErrorSeverity::NormalError){
+                DrawRectangle(
+                    startingPosition.x,
+                    startingPosition.y,
+                    288,
+                    48,
+                    RED);
+                DrawRectangleLines(
+                    startingPosition.x,
+                    startingPosition.y,
+                    288,
+                    48,
+                    MAROON);
+
+                DrawText(
+                    error.GetErrorTitle().c_str(),
+                    startingPosition.x + 8,
+                    startingPosition.y + 8,
+                    10,
+                    WHITE);
+                DrawText(
+                    error.GetErrorMessage().c_str(),
+                    startingPosition.x + 8,
+                    startingPosition.y + 24,
+                    10,
+                    LIGHTGRAY);
+                if(GuiButton(
+        {.x = startingPosition.x + 256,
+            .y = startingPosition.y + 8,
+            .width = 24,
+            .height = 24},
+            "#113#")){
+                    iterator = errors_.erase(iterator);
+                    break;
+                }
+            }
+            if(error.GetErrorSeverity() == IApp::ErrorSeverity::Warning){
+                DrawRectangle(
+                    startingPosition.x,
+                    startingPosition.y,
+                    288,
+                    48,
+                    YELLOW);
+                DrawRectangleLines(
+                    startingPosition.x,
+                    startingPosition.y,
+                    288,
+                    48,
+                    BROWN);
+
+                DrawText(
+                    error.GetErrorTitle().c_str(),
+                    startingPosition.x + 8,
+                    startingPosition.y + 8,
+                    10,
+                    WHITE);
+                DrawText(
+                    error.GetErrorMessage().c_str(),
+                    startingPosition.x + 8,
+                    startingPosition.y + 24,
+                    10,
+                    LIGHTGRAY);
+                if(GuiButton({
+                    startingPosition.x + 256,
+                    startingPosition.y + 8,
+                    24,
+                    24},
+                    "#113#")){
+                    iterator = errors_.erase(iterator);
+                    break;
+                }
+
+            }
+            if(error.GetErrorSeverity() == IApp::ErrorSeverity::Information){
+                DrawRectangle(
+                    startingPosition.x,
+                    startingPosition.y,
+                    288,
+                    48,
+                    LIGHTGRAY);
+                DrawRectangleLines(
+                    startingPosition.x,
+                    startingPosition.y,
+                    288,
+                    48,
+                    DARKGRAY);
+
+                DrawText(
+                    error.GetErrorTitle().c_str(),
+                    startingPosition.x + 8,
+                    startingPosition.y + 8,
+                    10,
+                    WHITE);
+                DrawText(
+                    error.GetErrorMessage().c_str(),
+                    startingPosition.x + 8,
+                    startingPosition.y + 24,
+                    10,
+                    LIGHTGRAY);
+                if(GuiButton({
+                    startingPosition.x + 256,
+                    startingPosition.y + 8,
+                    24,
+                    24},
+                    "#113#")){
+                    iterator = errors_.erase(iterator);
+                    break;
+                }
+
+            }
+
+            ++iterator;
+            startingPosition.y -= 72;
+
+        }
+
         EndDrawing();
     }
 
@@ -223,11 +359,22 @@ void IHabitApp::IHabitApp::Run() {
 }
 
 IHabitApp::IHabitApp::IHabitApp() {
+    habit_tracker_serializer_ = HabitTrackerSerializerFactory::CreateSerializer();
+
     window_gui_state_ = WindowGuiState::None;
 
-    if (std::filesystem::exists(habit_path_)) {
-        HabitTrackerManager::LoadHabitTrackers(habit_path_);
+#ifdef __EMSCRIPTEN__
+    current_path_ = "/";
+    habit_path_ = current_path_ /= "data";
+#endif
+
+    if (!std::filesystem::exists(habit_path_)) {
+#ifndef __EMSCRIPTEN__
+        std::cout << "Habit folder doesn't exist, creating folder.\n";
+        std::filesystem::create_directories(habit_path_);
+#endif
     }
+    HabitTrackerManager::LoadHabitTrackers(habit_path_, habit_tracker_serializer_);
 
     new_habit_threshold_colours_ = new std::map<double, std::string>();
     current_habit_ = nullptr;
@@ -507,7 +654,7 @@ void IHabitApp::IHabitApp::ShowHelpMenu(){
         .width = standard_box_inner.width,
         .height = 24,
     },
-    "Click on the Habit menu, the middle button on the top left of the screen, to add, remove, and see information about your habits. Enjoy :)");
+    "Click on the Habit menu, on the top left of the screen, to remove, and see information about your habits. Click on the add button to add habits. Enjoy :)");
 
     GuiLabel({
         .x = standard_box_inner.x + 8,
@@ -620,7 +767,7 @@ void IHabitApp::IHabitApp::ShowRecordDayMenu() {
         .width = 72,
         .height = 24},
         "Add")) {
-        if (std::chrono::year_month_day* result = IsRecordInputValid()) {
+        if (const std::chrono::year_month_day* result = IsRecordInputValid()) {
             RecordDay(result);
         }
     }
@@ -814,15 +961,15 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
         new_habit_threshold_value_edit_mode_ = !new_habit_threshold_value_edit_mode_;
     }
 
-    if (GuiButton({.x = standard_box_inner.x + 1152,
+    if (GuiButton({.x = standard_box_inner.x + 1050,
         .y = standard_box_inner.y + 292,
-        .width = 72,
+        .width = 176,
         .height = 24
     },
     "Add Threshold")) {
         if (double* threshold = IsThresholdValueValid()) {
             char hex[10];
-            sprintf(hex, "#%02X%02X%02X", new_threshold_colour_.r,
+            snprintf(hex, sizeof(hex), "#%02X%02X%02X", new_threshold_colour_.r,
                 new_threshold_colour_.g,
                 new_threshold_colour_.b);
 
@@ -831,7 +978,7 @@ void IHabitApp::IHabitApp::ShowAddHabitMenu() {
     }
 
 
-    if (GuiButton({.x = standard_box_inner.x + 1152,
+    if (GuiButton({.x = standard_box_inner.x + 1050,
         .y = standard_box_inner.y + 552,
         .width = 72,
         .height = 24
@@ -847,8 +994,20 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
     // Check Day
     const std::string day_string {new_record_day_};
 
+    if (day_string.empty()) {
+        IApp::ErrorManager::AddError(
+            "No day provided",
+            "Please provide a numerical value for the day.",
+            IApp::ErrorSeverity::NormalError);
+        return nullptr;
+    }
+
     for (int i {0}; i < day_string.size(); ++i) {
         if (!isdigit(day_string[i])) {
+            IApp::ErrorManager::AddError(
+            "Invalid day",
+            "Please provide a numerical value for the day.",
+            IApp::ErrorSeverity::NormalError);
             return nullptr;
         }
     }
@@ -857,8 +1016,20 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
     // Check Month
     const std::string month_string {new_record_month_};
 
+    if (month_string.empty()) {
+        IApp::ErrorManager::AddError(
+            "No month provided",
+            "Please provide a numerical value for the month.",
+            IApp::ErrorSeverity::NormalError);
+        return nullptr;
+    }
+
     for (int i {0}; i < month_string.size(); ++i) {
         if (!isdigit(month_string[i])) {
+            IApp::ErrorManager::AddError(
+            "Invalid month",
+            "Please provide a numerical value for the month.",
+            IApp::ErrorSeverity::NormalError);
             return nullptr;
         }
     }
@@ -866,9 +1037,21 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
 
     const std::string year_string {new_record_year_};
 
+    if (year_string.empty()) {
+        IApp::ErrorManager::AddError(
+            "No year provided",
+            "Please provide a numerical value for the year.",
+            IApp::ErrorSeverity::NormalError);
+        return nullptr;
+    }
+
     // Check Year
     for (int i {0}; i < year_string.size(); ++i) {
         if (!isdigit(year_string[i])) {
+            IApp::ErrorManager::AddError(
+            "Invalid year",
+            "Please provide a numerical value for the year.",
+            IApp::ErrorSeverity::NormalError);
             return nullptr;
         }
     }
@@ -881,6 +1064,10 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
         new_record_value_double_ = std::stod(value_string);
     }
     catch (std::invalid_argument& e) {
+        IApp::ErrorManager::AddError(
+            "Invalid value",
+            "Please provide a numerical value for the value.",
+            IApp::ErrorSeverity::NormalError);
         return nullptr;
     }
 
@@ -892,6 +1079,10 @@ std::chrono::year_month_day* IHabitApp::IHabitApp::IsRecordInputValid() {
         return ymd;
     }
     else {
+        IApp::ErrorManager::AddError(
+            "Invalid date",
+            "Please provide a valid date that exists.",
+            IApp::ErrorSeverity::NormalError);
         return nullptr;
     }
 }
@@ -906,7 +1097,23 @@ HabitTracker* IHabitApp::IHabitApp::IsAddHabitInputValid() {
 
     // Check if title is not empty
     if (title.empty()) {
+        IApp::ErrorManager::AddError(
+            "Title field is empty.",
+            "Please provide a unique title for your habit.",
+            IApp::ErrorSeverity::NormalError);
         return nullptr;
+    }
+
+    // Check if the habit title already exists.
+    for (std::pair<std::string, HabitTracker> data_pair :
+        HabitTrackerManager::GetHabitTrackers()) {
+        if (data_pair.first == title) {
+            IApp::ErrorManager::AddError(
+            "Habit with the same title already exists.",
+            "Please provide a unique title for your habit.",
+            IApp::ErrorSeverity::NormalError);
+            return nullptr;
+        }
     }
 
     // Description can be empty
@@ -916,11 +1123,19 @@ HabitTracker* IHabitApp::IHabitApp::IsAddHabitInputValid() {
     const auto metric = std::string(new_habit_metric_);
 
     if (metric.empty()) {
+        IApp::ErrorManager::AddError(
+            "Metric field is empty.",
+            "Please provide a metric for your habit",
+            IApp::ErrorSeverity::NormalError);
         return nullptr;
     }
 
     // Check if that there is at least one threshold
     if (new_habit_threshold_colours_->empty()) {
+        IApp::ErrorManager::AddError(
+            "No threshold colours provided",
+            "Please provide threshold colours.",
+            IApp::ErrorSeverity::NormalError);
         return nullptr;
     }
 
@@ -942,23 +1157,32 @@ void IHabitApp::IHabitApp::AddHabit(const HabitTracker* habit_tracker) {
 double* IHabitApp::IHabitApp::IsThresholdValueValid() const {
     // Check if threshold value is not empty.
     if (new_threshold_value_[0] == '\0') {
+        IApp::ErrorManager::AddError(
+            "Threshold value field is empty.",
+            "Please provide a threshold value in the field.",
+            IApp::ErrorSeverity::NormalError);
         return nullptr;
     }
 
-    std::string threshold_value;
-    for (int i {0}; i < 6; ++i) {
-        threshold_value += new_threshold_value_[i];
-    }
+    const auto threshold_value = std::string(new_threshold_value_);
     double value;
     try {
         value = std::stod(threshold_value);
     }
     catch (std::invalid_argument& e) {
+        IApp::ErrorManager::AddError(
+            "Threshold value is not a value",
+            "Please provide a valid value within the threshold value field.",
+            IApp::ErrorSeverity::NormalError);
         return nullptr;
     }
     for (const auto &key: *new_habit_threshold_colours_ | std::views::keys) {
         // Cannot have identical value thresholds.
         if (value == key) {
+            IApp::ErrorManager::AddError(
+            "Cannot have identical threshold values.",
+            "Please provide a different threshold value or delete the existing value.",
+            IApp::ErrorSeverity::NormalError);
             return nullptr;
         }
     }

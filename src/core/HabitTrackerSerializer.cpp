@@ -1,79 +1,59 @@
 #include "HabitTrackerSerializer.hpp"
-#include "HabitTracker.hpp"
 #include "json.hpp"
-#include <chrono>
-#include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <map>
-#include <string>
-#include <utility>
 
-HabitTracker* HabitTrackerSerializer::LoadHabitTracker(std::filesystem::path path){
-    std::ifstream input(path);
-    if (!input.is_open()) {
-        std::cout << "Can't open file.\n";
-        return nullptr;
-    }
-
+HabitTracker* HabitTrackerSerializer::ParseHabitTracker(const std::string &json) {
+    HabitTracker* habit_tracker = nullptr;
     nlohmann::json json_file;
-    input >> json_file;
 
-    if(input.bad()){
-        std::cout << "I/O error while reading\n";
-        return nullptr;
-    }
-    if(input.fail()){
-        std::cout << "A failure has occurred when reading the file at: " << path << '\n';
+    try {
+        json_file = nlohmann::json::parse(json);
+    } catch (const nlohmann::json::parse_error& e) {
+        std::cout << "Failed to parse JSON: " << e.what() << '\n';
         return nullptr;
     }
 
     if(json_file.empty()){
         std::cout << "File is empty!\n";
-        return nullptr;
+        return habit_tracker;
     }
 
     if(!json_file.contains("information")){
         std::cout << "Json file doesn't contain a information section, aborting.\n";
-        input.close();
-        return nullptr;
+        return habit_tracker;
     }
 
     if(!json_file.contains("data")){
         std::cout << "Json file doesn't contain a data section, aborting.\n";
-        input.close();
-        return nullptr;
+        return habit_tracker;
     }
 
     if(!json_file["information"].contains("title")){
         std::cout << "Json file doesn't contain title in information section, aborting.\n";
-        input.close();
-        return nullptr;
+        return habit_tracker;
     }
     std::string title = json_file["information"]["title"];
 
     if(!json_file["information"].contains("description")){
         std::cout << "Json file doesn't contain description in information section, aborting.\n";
-        input.close();
-        return nullptr;
+        return habit_tracker;
     }
     std::string description = json_file["information"]["description"];
 
     if(!json_file["information"].contains("metric")){
         std::cout << "Json file doesn't contain metric in information section, aborting.\n";
-        input.close();
-        return nullptr;
+        return habit_tracker;
     }
     std::string metric = json_file["information"]["metric"];
 
     std::map<std::string, std::string> threshold_colours_temporary;
     try {
-        threshold_colours_temporary = 
+        threshold_colours_temporary =
         json_file["information"]["thresholds"].get<std::map<std::string, std::string>>();
     } catch (const nlohmann::json::type_error& exception) {
         std::cout << "Incorrect type expected in thresholds.\n";
         std::cout << exception.what();
-        return nullptr;
+        return habit_tracker;
     }
 
     // Converting thresholds from string to double.
@@ -95,37 +75,44 @@ HabitTracker* HabitTrackerSerializer::LoadHabitTracker(std::filesystem::path pat
     catch (const nlohmann::json::type_error& exception){
         std::cout << "Incorrect type expected in thresholds.\n";
         std::cout << exception.what();
-        return nullptr;
+        return habit_tracker;
     }
 
     // Converting date from string to chrono format.
     std::map<std::chrono::year_month_day, double> data;
     for(std::pair<std::string, double> data_pair : data_temporary){
         std::string date = data_pair.first;
-        std::string year = date.substr(6, 4);
-        std::string month = date.substr(3, 2);
-        std::string day = date.substr(0, 2);
-        auto unsigned_month = static_cast<unsigned int>(std::stoi(month));
-        auto unsigned_day = static_cast<unsigned int>(std::stoi(day));
+        size_t first_slash = date.find('/');
+        size_t second_slash = date.find('/', first_slash + 1);
+
+        std::string day_str = date.substr(0, first_slash);
+        std::string month_str = date.substr(first_slash + 1, second_slash - first_slash - 1);
+        std::string year_str = date.substr(second_slash + 1);
+
+        auto unsigned_day = static_cast<unsigned int>(std::stoi(day_str));
+        auto unsigned_month = static_cast<unsigned int>(std::stoi(month_str));
         std::chrono::year_month_day first_day{
-        std::chrono::year{std::stoi(year)}, 
-        std::chrono::month{unsigned_month}, 
+        std::chrono::year{std::stoi(year_str)},
+        std::chrono::month{unsigned_month},
         std::chrono::day{unsigned_day}};
-        data.emplace(first_day, data_pair.second);    
+        data.emplace(first_day, data_pair.second);
     }
 
-    input.close();
+    habit_tracker = new HabitTracker(
+        title,
+        description,
+        metric,
+        threshold_colours,
+        data
+        );
 
-    return new HabitTracker(title, description, metric, threshold_colours, data);
+    return habit_tracker;
 }
 
-void HabitTrackerSerializer::SaveHabitTracker(const std::filesystem::path& path,
-    const HabitTracker& habit_tracker
-){
-    // Every save completely overwrites the previous file if it existed,
-    // or just creates a new file.
-    std::ofstream output(path);
+std::string HabitTrackerSerializer::ConvertToJsonString(
+    const HabitTracker &habit_tracker) {
     nlohmann::json json_file;
+
     json_file["information"]["title"] = habit_tracker.GetTitle();
     json_file["information"]["description"] = habit_tracker.GetDescription();
     json_file["information"]["metric"] = habit_tracker.GetMetric();
@@ -145,34 +132,6 @@ void HabitTrackerSerializer::SaveHabitTracker(const std::filesystem::path& path,
                 "/" + std::to_string(static_cast<int>(chrono_date.year()));
         json_file["data"][date] = entry.second;
     }
-    output << json_file;
-    if(output.fail()){
-        std::cout << "Failed to save habit tracker to: " << path << '\n';
-    }
-    output.close();
-}
 
-/*
-void HabitTrackerManager::SaveTitle(std::string file, std::string title){
-    std::ifstream input(file);
-    nlohmann::json json_file;
-    input >> json_file;
-    input.close();
-    std::ofstream output(file);
-    json_file["information"]["title"] = title;
-    output << json_file;
-    output.close();
-    std::filesystem::rename(file, title + ".json");
+    return json_file.dump(4);
 }
-
-void HabitTrackerManager::SaveDescription(std::string file, std::string description){
-    std::ifstream input(file);
-    nlohmann::json json_file;
-    input >> json_file;
-    input.close();
-    std::ofstream output(file);
-    json_file["information"]["description"] = description;
-    output << json_file;
-    output.close();
-}
-*/
